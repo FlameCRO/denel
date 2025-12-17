@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ClothingItem, CATEGORIES, CategoryType } from '@/types/inventory';
+import { ClothingItem } from '@/types/inventory';
+import { Category } from '@/hooks/useCategories';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ interface AddItemDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (item: Omit<ClothingItem, 'id' | 'createdAt' | 'updatedAt'>) => void;
   editItem?: ClothingItem | null;
+  categories: Category[];
 }
 
 export const AddItemDialog = ({
@@ -31,10 +33,11 @@ export const AddItemDialog = ({
   onOpenChange,
   onSave,
   editItem,
+  categories,
 }: AddItemDialogProps) => {
   const [formData, setFormData] = useState({
     name: '',
-    category: 'majice' as CategoryType,
+    category: 'majice',
     price: '',
     quantityOwned: '',
     quantitySold: '0',
@@ -45,7 +48,7 @@ export const AddItemDialog = ({
     if (editItem) {
       setFormData({
         name: editItem.name,
-        category: editItem.category as CategoryType,
+        category: editItem.category,
         price: editItem.price.toString(),
         quantityOwned: editItem.quantityOwned.toString(),
         quantitySold: editItem.quantitySold.toString(),
@@ -103,7 +106,7 @@ export const AddItemDialog = ({
             <Label htmlFor="category">Kategorija</Label>
             <Select
               value={formData.category}
-              onValueChange={(value: CategoryType) =>
+              onValueChange={(value) =>
                 setFormData(prev => ({ ...prev, category: value }))
               }
             >
@@ -111,7 +114,7 @@ export const AddItemDialog = ({
                 <SelectValue placeholder="Odaberi kategoriju" />
               </SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map(cat => (
+                {categories.map(cat => (
                   <SelectItem key={cat.value} value={cat.value}>
                     {cat.label}
                   </SelectItem>

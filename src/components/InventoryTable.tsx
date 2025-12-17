@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ClothingItem, CATEGORIES } from '@/types/inventory';
+import { ClothingItem } from '@/types/inventory';
+import { Category } from '@/hooks/useCategories';
 import {
   Table,
   TableBody,
@@ -25,23 +26,30 @@ import {
   TrendingDown,
   Package,
   Search,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface InventoryTableProps {
   items: ClothingItem[];
+  categories: Category[];
+  getCategoryLabel: (value: string) => string;
   onEdit: (item: ClothingItem) => void;
   onDelete: (id: string) => void;
   onRecordSale: (item: ClothingItem) => void;
   onRecordIncoming: (item: ClothingItem) => void;
+  onManageCategories: () => void;
 }
 
 export const InventoryTable = ({
   items,
+  categories,
+  getCategoryLabel,
   onEdit,
   onDelete,
   onRecordSale,
   onRecordIncoming,
+  onManageCategories,
 }: InventoryTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -65,10 +73,6 @@ export const InventoryTable = ({
     return { label: 'U redu', variant: 'success' as const };
   };
 
-  const getCategoryLabel = (category: string) => {
-    return CATEGORIES.find(c => c.value === category)?.label || category;
-  };
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('hr-HR', {
       style: 'currency',
@@ -89,16 +93,21 @@ export const InventoryTable = ({
             className="pl-10"
           />
         </div>
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="all">Sve kategorije</option>
-          {CATEGORIES.map(cat => (
-            <option key={cat.value} value={cat.value}>{cat.label}</option>
-          ))}
-        </select>
+        <div className="flex gap-1">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="all">Sve kategorije</option>
+            {categories.map(cat => (
+              <option key={cat.value} value={cat.value}>{cat.label}</option>
+            ))}
+          </select>
+          <Button variant="outline" size="icon" onClick={onManageCategories} title="Upravljaj kategorijama">
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
         <select
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value as 'default' | 'az' | 'za')}

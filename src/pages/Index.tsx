@@ -7,7 +7,9 @@ import { QuantityDialog } from '@/components/QuantityDialog';
 import { DailyReportDialog } from '@/components/DailyReportDialog';
 import { TransactionHistoryDialog } from '@/components/TransactionHistoryDialog';
 import { IncomingCalculationDialog } from '@/components/IncomingCalculationDialog';
+import { CategoryManagementDialog } from '@/components/CategoryManagementDialog';
 import { useInventory } from '@/hooks/useInventory';
+import { useCategories } from '@/hooks/useCategories';
 import { ClothingItem } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
 import {
@@ -76,6 +78,9 @@ const Index = () => {
   const [dailyReportOpen, setDailyReportOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [incomingCalcOpen, setIncomingCalcOpen] = useState(false);
+  const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
+  
+  const { categories, addCategory, renameCategory, deleteCategory, getCategoryLabel } = useCategories();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('hr-HR', {
@@ -524,10 +529,13 @@ const Index = () => {
         {/* Inventory Table */}
         <InventoryTable
           items={items}
+          categories={categories}
+          getCategoryLabel={getCategoryLabel}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onRecordSale={handleRecordSale}
           onRecordIncoming={handleRecordIncoming}
+          onManageCategories={() => setCategoryManagementOpen(true)}
         />
       </main>
 
@@ -540,6 +548,7 @@ const Index = () => {
         }}
         onSave={handleSaveItem}
         editItem={editItem}
+        categories={categories}
       />
 
       <QuantityDialog
@@ -572,6 +581,16 @@ const Index = () => {
         onOpenChange={setIncomingCalcOpen}
         onSave={handleIncomingCalculation}
         savedCalculations={savedCalculations}
+        categories={categories}
+      />
+
+      <CategoryManagementDialog
+        open={categoryManagementOpen}
+        onOpenChange={setCategoryManagementOpen}
+        categories={categories}
+        onAddCategory={addCategory}
+        onRenameCategory={renameCategory}
+        onDeleteCategory={deleteCategory}
       />
     </div>
   );

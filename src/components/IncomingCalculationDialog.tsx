@@ -17,7 +17,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CATEGORIES, SavedCalculation } from '@/types/inventory';
+import { SavedCalculation } from '@/types/inventory';
+import { Category } from '@/hooks/useCategories';
 import { Plus, Trash2, FileInput, History, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { hr } from 'date-fns/locale';
@@ -35,6 +36,7 @@ interface IncomingCalculationDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (invoiceName: string, items: IncomingItem[]) => void;
   savedCalculations: SavedCalculation[];
+  categories: Category[];
 }
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -44,6 +46,7 @@ export const IncomingCalculationDialog = ({
   onOpenChange,
   onSave,
   savedCalculations,
+  categories,
 }: IncomingCalculationDialogProps) => {
   const [invoiceName, setInvoiceName] = useState('');
   const [items, setItems] = useState<IncomingItem[]>([
@@ -99,7 +102,7 @@ export const IncomingCalculationDialog = ({
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const getCategoryLabel = (value: string) => {
-    return CATEGORIES.find(c => c.value === value)?.label || value;
+    return categories.find(c => c.value === value)?.label || value;
   };
 
   return (
@@ -185,7 +188,7 @@ export const IncomingCalculationDialog = ({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map((cat) => (
+                        {categories.map((cat) => (
                           <SelectItem key={cat.value} value={cat.value}>
                             {cat.label}
                           </SelectItem>
