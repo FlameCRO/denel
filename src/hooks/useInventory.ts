@@ -412,8 +412,30 @@ export const useInventory = () => {
         return { success: false, message: 'CSV datoteka je prazna ili nema podataka.', imported: 0, notFound: [] };
       }
 
+      // Helper function to parse CSV line properly handling quoted fields
+      const parseCSVLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if ((char === ',' || char === ';') && !inQuotes) {
+            result.push(current.trim().replace(/"/g, ''));
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim().replace(/"/g, ''));
+        return result;
+      };
+
       // Parse header to find column indices
-      const header = lines[0].split(/[,;]/).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      const header = parseCSVLine(lines[0]).map(h => h.toLowerCase());
       const proizvodIndex = header.findIndex(h => h === 'proizvod' || h.includes('proizvod'));
       const kolicinaIndex = header.findIndex(h => h === 'količina' || h === 'kolicina' || h.includes('količ') || h.includes('kolic'));
       const razduzenjeIndex = header.findIndex(h => h === 'razduženje' || h === 'razduzenje' || h.includes('razduž') || h.includes('razduz'));
@@ -448,7 +470,7 @@ export const useInventory = () => {
 
       // Process data rows
       for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(/[,;]/).map(cell => cell.trim().replace(/"/g, ''));
+        const row = parseCSVLine(lines[i]);
         if (row.length <= Math.max(proizvodIndex, kolicinaIndex)) continue;
 
         const proizvodRaw = row[proizvodIndex];
