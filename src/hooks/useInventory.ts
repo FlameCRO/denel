@@ -503,6 +503,89 @@ export const useInventory = () => {
     addTransaction('all', 'Svi artikli', 'sale', 0, 'Reset prodaje - sve svedeno na 0, stanje vraćeno');
   }, [addTransaction]);
 
+  const importItemsFromCSV = useCallback((csvString: string): { success: boolean; message: string; imported: number } => {
+    try {
+      const lines = csvString.split('\n').filter(line => line.trim());
+      if (lines.length < 2) {
+        return { success: false, message: 'CSV datoteka je prazna ili nema podataka.', imported: 0 };
+      }
+
+      // Parse header to find column indices
+      const header = lines[0].split(/[,;]/).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      const imeIndex = header.findIndex(h => h === 'ime' || h.includes('ime'));
+      const cijenaIndex = header.findIndex(h => h === 'cijena' || h.includes('cijena'));
+
+      if (imeIndex === -1) {
+        return { success: false, message: 'Nije pronađen stupac "Ime" u CSV datoteci.', imported: 0 };
+      }
+      if (cijenaIndex === -1) {
+        return { success: false, message: 'Nije pronađen stupac "cijena" u CSV datoteci.', imported: 0 };
+      }
+
+      let importedCount = 0;
+
+      // Process data rows
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i].split(/[,;]/).map(cell => cell.trim().replace(/"/g, ''));
+        if (row.length <= Math.max(imeIndex, cijenaIndex)) continue;
+
+        const imeRaw = row[imeIndex];
+        const cijenaRaw = row[cijenaIndex];
+
+        if (!imeRaw || !cijenaRaw) continue;
+
+        // Parse price from "cijena" column
+        const price = parseFloat(cijenaRaw.replace(',', '.').replace(/[€\s]/g, ''));
+        if (isNaN(price) || price <= 0) continue;
+
+        // Parse name from "Ime" field - remove price suffix if present (e.g., "Bokserice 1.5€" → "Bokserice")
+        const priceMatch = imeRaw.match(/\s+\d+(?:[.,]\d+)?\s*€?\s*$/);
+        const productName = priceMatch ? imeRaw.replace(priceMatch[0], '').trim() : imeRaw.trim();
+
+        if (!productName) continue;
+
+        // Check if item already exists
+        const existingItem = items.find(item => 
+          item.name.toLowerCase() === productName.toLowerCase()
+        );
+
+        if (existingItem) {
+          // Update price if item exists
+          updateItem(existingItem.id, { price });
+        } else {
+          // Add new item
+          const newItem: ClothingItem = {
+            id: generateId(),
+            name: productName,
+            category: 'ostalo',
+            price,
+            quantityOwned: 0,
+            quantitySold: 0,
+            quantityIncoming: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          setItems(prev => [...prev, newItem]);
+          addTransaction(newItem.id, newItem.name, 'add', 0, `Uvezeno iz CSV - Cijena: ${price}€`);
+        }
+        importedCount++;
+      }
+
+      if (importedCount === 0) {
+        return { success: false, message: 'Nisu pronađeni valjani artikli za uvoz.', imported: 0 };
+      }
+
+      return { 
+        success: true, 
+        message: `Uspješno uvezeno/ažurirano ${importedCount} artikala.`,
+        imported: importedCount
+      };
+    } catch (error) {
+      console.error('Error importing items from CSV:', error);
+      return { success: false, message: 'Greška pri čitanju CSV datoteke.', imported: 0 };
+    }
+  }, [items, addTransaction, updateItem]);
+
   return {
     items,
     transactions,
@@ -524,6 +607,7 @@ export const useInventory = () => {
     exportToJSON,
     importFromJSON,
     importSalesFromCSV,
+    importItemsFromCSV,
     resetAllSales,
   };
 };
