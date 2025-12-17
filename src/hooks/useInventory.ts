@@ -416,6 +416,7 @@ export const useInventory = () => {
       const header = lines[0].split(/[,;]/).map(h => h.trim().toLowerCase().replace(/"/g, ''));
       const proizvodIndex = header.findIndex(h => h === 'proizvod' || h.includes('proizvod'));
       const kolicinaIndex = header.findIndex(h => h === 'količina' || h === 'kolicina' || h.includes('količ') || h.includes('kolic'));
+      const razduzenjeIndex = header.findIndex(h => h === 'razduženje' || h === 'razduzenje' || h.includes('razduž') || h.includes('razduz'));
 
       if (proizvodIndex === -1) {
         return { success: false, message: 'Nije pronađen stupac "proizvod" u CSV datoteci.', imported: 0, notFound: [] };
@@ -427,6 +428,24 @@ export const useInventory = () => {
       let importedCount = 0;
       const notFoundItems: string[] = [];
 
+      // Helper function to normalize item name (remove price suffix)
+      const normalizeName = (name: string): string => {
+        return name
+          .replace(/\s*\d+(?:[.,]\d+)?\s*€?\s*$/, '') // Remove price at end
+          .trim()
+          .toLowerCase();
+      };
+
+      // Helper function to parse price from string like "14,00 €" or "1,50 €"
+      const parsePrice = (priceStr: string): number | null => {
+        if (!priceStr) return null;
+        const match = priceStr.match(/(\d+(?:[.,]\d+)?)\s*€?/);
+        if (match) {
+          return parseFloat(match[1].replace(',', '.'));
+        }
+        return null;
+      };
+
       // Process data rows
       for (let i = 1; i < lines.length; i++) {
         const row = lines[i].split(/[,;]/).map(cell => cell.trim().replace(/"/g, ''));
@@ -434,6 +453,7 @@ export const useInventory = () => {
 
         const proizvodRaw = row[proizvodIndex];
         const kolicinaRaw = row[kolicinaIndex];
+        const razduzenjeRaw = razduzenjeIndex !== -1 ? row[razduzenjeIndex] : '';
 
         if (!proizvodRaw || !kolicinaRaw) continue;
 
@@ -451,17 +471,17 @@ export const useInventory = () => {
           csvProductName = proizvodRaw.replace(priceMatch[0], '').trim();
         }
 
-        // Helper function to normalize item name (remove price suffix)
-        const normalizeName = (name: string): string => {
-          return name
-            .replace(/\s*\d+(?:[.,]\d+)?\s*€?\s*$/, '') // Remove price at end
-            .trim()
-            .toLowerCase();
-        };
+        // If no price in product name, try to calculate from Razduženje column
+        if (csvProductPrice === null && razduzenjeRaw) {
+          const totalSaleValue = parsePrice(razduzenjeRaw);
+          if (totalSaleValue !== null && quantity > 0) {
+            csvProductPrice = totalSaleValue / quantity;
+          }
+        }
 
         const normalizedCsvName = normalizeName(csvProductName);
 
-        // Find matching item by normalized name (without price) and optionally by price
+        // Find matching item by normalized name (without price) and price
         const matchingItem = items.find(item => {
           const normalizedItemName = normalizeName(item.name);
           
@@ -472,21 +492,22 @@ export const useInventory = () => {
           const partialMatch = normalizedItemName.includes(normalizedCsvName) || 
                               normalizedCsvName.includes(normalizedItemName);
           
-          // If CSV has a price, also verify the item price matches
+          const nameMatches = exactMatch || partialMatch;
+          
+          // If we have a calculated price, also verify the item price matches
           if (csvProductPrice !== null) {
-            return (exactMatch || partialMatch) && Math.abs(item.price - csvProductPrice) < 0.01;
+            return nameMatches && Math.abs(item.price - csvProductPrice) < 0.01;
           }
           
-          // If no price in CSV, try to match by name and item's actual price
-          // This helps match "Bokserice" from CSV to "Bokserice 1.5€" in inventory
-          return exactMatch || partialMatch;
+          // If no price available at all, just match by name
+          return nameMatches;
         });
 
         if (matchingItem) {
           recordSale(matchingItem.id, quantity);
           importedCount++;
         } else {
-          notFoundItems.push(`${proizvodRaw} (količina: ${quantity})`);
+          notFoundItems.push(`${proizvodRaw} (količina: ${quantity}${csvProductPrice !== null ? `, cijena: ${csvProductPrice.toFixed(2)}€` : ''})`);
         }
       }
 
