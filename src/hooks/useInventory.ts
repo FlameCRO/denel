@@ -503,6 +503,29 @@ export const useInventory = () => {
     addTransaction('all', 'Svi artikli', 'sale', 0, 'Reset prodaje - sve svedeno na 0, stanje vraćeno');
   }, [addTransaction]);
 
+  // Helper function to parse CSV line handling quoted fields
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    
+    return result;
+  };
+
   const importItemsFromCSV = useCallback((csvString: string): { success: boolean; message: string; imported: number } => {
     try {
       // Remove BOM if present
@@ -513,18 +536,11 @@ export const useInventory = () => {
         return { success: false, message: 'CSV datoteka je prazna ili nema podataka.', imported: 0 };
       }
 
-      // Detect delimiter (try tab, semicolon, comma)
-      const firstLine = lines[0];
-      let delimiter = ',';
-      if (firstLine.includes('\t')) delimiter = '\t';
-      else if (firstLine.includes(';')) delimiter = ';';
-      
       console.log('=== CSV IMPORT DEBUG ===');
-      console.log('First line raw:', JSON.stringify(firstLine));
-      console.log('Detected delimiter:', delimiter === '\t' ? 'TAB' : `"${delimiter}"`);
+      console.log('First line raw:', lines[0]);
 
-      // Parse header to find column indices
-      const header = firstLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      // Parse header using proper CSV parsing
+      const header = parseCSVLine(lines[0]).map(h => h.toLowerCase());
       console.log('Parsed header columns:', header);
       console.log('Number of columns:', header.length);
       
@@ -542,15 +558,13 @@ export const useInventory = () => {
       if (cijenaIndex === -1) {
         cijenaIndex = header.findIndex(h => h.includes('cijena') && h !== 'ime');
       }
-      
-      // Make sure we don't use the same column for both
-      if (imeIndex === cijenaIndex && imeIndex !== -1) {
-        console.log('Warning: ime and cijena matched same column, searching for different cijena column');
-        cijenaIndex = header.findIndex((h, idx) => idx !== imeIndex && h.includes('cijena'));
-      }
+
+      // Find "Grupa" column for category
+      const grupaIndex = header.findIndex(h => h === 'grupa' || h.includes('grupa'));
 
       console.log('Found Ime index:', imeIndex, '-> column:', header[imeIndex]);
       console.log('Found Cijena index:', cijenaIndex, '-> column:', header[cijenaIndex]);
+      console.log('Found Grupa index:', grupaIndex, '-> column:', header[grupaIndex]);
 
       if (imeIndex === -1) {
         return { success: false, message: `Nije pronađen stupac "Ime". Pronađeni stupci: ${header.join(' | ')}`, imported: 0 };
@@ -561,9 +575,9 @@ export const useInventory = () => {
 
       let importedCount = 0;
 
-      // Process data rows
+      // Process data rows using proper CSV parsing
       for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(delimiter).map(cell => cell.trim().replace(/"/g, ''));
+        const row = parseCSVLine(lines[i]);
         
         if (row.length <= Math.max(imeIndex, cijenaIndex)) {
           console.log(`Row ${i}: skipped - not enough columns (${row.length})`);
@@ -572,8 +586,9 @@ export const useInventory = () => {
 
         const imeRaw = row[imeIndex];
         const cijenaRaw = row[cijenaIndex];
+        const grupaRaw = grupaIndex !== -1 ? row[grupaIndex] : '';
 
-        console.log(`Row ${i}: Ime[${imeIndex}]="${imeRaw}", Cijena[${cijenaIndex}]="${cijenaRaw}"`);
+        console.log(`Row ${i}: Ime="${imeRaw}", Cijena="${cijenaRaw}", Grupa="${grupaRaw}"`);
 
         if (!imeRaw) continue;
 
@@ -622,10 +637,13 @@ export const useInventory = () => {
         if (existingItem) {
           updateItem(existingItem.id, { price: finalPrice });
         } else {
+          // Map Grupa to category, default to 'ostalo'
+          const category = grupaRaw ? grupaRaw.toLowerCase().replace(/\//g, '-') : 'ostalo';
+          
           const newItem: ClothingItem = {
             id: generateId(),
             name: productName,
-            category: 'ostalo',
+            category: category,
             price: finalPrice,
             quantityOwned: 0,
             quantitySold: 0,
