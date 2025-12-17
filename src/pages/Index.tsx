@@ -58,12 +58,14 @@ const Index = () => {
     exportToJSON,
     importFromJSON,
     importSalesFromCSV,
+    importItemsFromCSV,
     resetAllSales,
   } = useInventory();
 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvSalesInputRef = useRef<HTMLInputElement>(null);
+  const csvItemsInputRef = useRef<HTMLInputElement>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<ClothingItem | null>(null);
   const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
@@ -248,6 +250,46 @@ const Index = () => {
     }
   };
 
+  const handleImportItemsCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const result = importItemsFromCSV(content);
+        
+        if (result.success) {
+          toast({
+            title: 'Uvoz artikala uspješan',
+            description: result.message,
+          });
+        } else {
+          toast({
+            title: 'Greška pri uvozu',
+            description: result.message,
+            variant: 'destructive',
+          });
+        }
+      } catch (error) {
+        toast({
+          title: 'Greška pri uvozu',
+          description: 'Došlo je do greške pri obradi datoteke.',
+          variant: 'destructive',
+        });
+      }
+    };
+    
+    reader.readAsText(file);
+    
+    // Reset input so same file can be selected again
+    if (csvItemsInputRef.current) {
+      csvItemsInputRef.current.value = '';
+    }
+  };
+
   const handleIncomingCalculation = (
     invoiceName: string,
     incomingItems: Array<{ id: string; name: string; category: string; price: number; quantity: number }>
@@ -363,6 +405,21 @@ const Index = () => {
               type="file"
               accept=".csv,text/csv,text/plain,application/vnd.ms-excel,*/*"
               onChange={handleImportSalesCSV}
+              style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+            />
+            <Button
+              variant="outline"
+              onClick={() => csvItemsInputRef.current?.click()}
+              className="gap-2"
+            >
+              <FileInput className="h-4 w-4" />
+              Uvezi artikle (CSV)
+            </Button>
+            <input
+              ref={csvItemsInputRef}
+              type="file"
+              accept=".csv,text/csv,text/plain,application/vnd.ms-excel,*/*"
+              onChange={handleImportItemsCSV}
               style={{ display: 'none', position: 'absolute', left: '-9999px' }}
             />
             <AlertDialog>
