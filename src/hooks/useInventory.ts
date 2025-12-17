@@ -505,7 +505,10 @@ export const useInventory = () => {
 
   const importItemsFromCSV = useCallback((csvString: string): { success: boolean; message: string; imported: number } => {
     try {
-      const lines = csvString.split('\n').filter(line => line.trim());
+      // Remove BOM if present
+      const cleanedString = csvString.replace(/^\uFEFF/, '');
+      const lines = cleanedString.split('\n').filter(line => line.trim());
+      
       if (lines.length < 2) {
         return { success: false, message: 'CSV datoteka je prazna ili nema podataka.', imported: 0 };
       }
@@ -516,30 +519,44 @@ export const useInventory = () => {
       if (firstLine.includes('\t')) delimiter = '\t';
       else if (firstLine.includes(';')) delimiter = ';';
       
-      console.log('Detected delimiter:', delimiter === '\t' ? 'TAB' : delimiter);
+      console.log('=== CSV IMPORT DEBUG ===');
+      console.log('First line raw:', JSON.stringify(firstLine));
+      console.log('Detected delimiter:', delimiter === '\t' ? 'TAB' : `"${delimiter}"`);
 
       // Parse header to find column indices
       const header = firstLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, ''));
-      console.log('CSV Header:', header);
+      console.log('Parsed header columns:', header);
+      console.log('Number of columns:', header.length);
       
-      // Find "Ime" column - exact match first, then includes
+      // Find "Ime" column - exact match first
       let imeIndex = header.findIndex(h => h === 'ime');
-      if (imeIndex === -1) imeIndex = header.findIndex(h => h.includes('ime') && !h.includes('cijena'));
-      
-      // Find "Cijena s PDV-om" column - specific match first
-      let cijenaIndex = header.findIndex(h => h.includes('cijena s pdv'));
-      if (cijenaIndex === -1) cijenaIndex = header.findIndex(h => h.includes('pdv') && h.includes('cijena'));
-      if (cijenaIndex === -1) cijenaIndex = header.findIndex(h => h === 'cijena');
-      if (cijenaIndex === -1) cijenaIndex = header.findIndex(h => h.includes('cijena'));
-
-      console.log('Ime index:', imeIndex, 'Cijena index:', cijenaIndex);
-      console.log('Ime column:', header[imeIndex], 'Cijena column:', header[cijenaIndex]);
-
       if (imeIndex === -1) {
-        return { success: false, message: `Nije pronađen stupac "Ime" u CSV datoteci. Pronađeni stupci: ${header.join(', ')}`, imported: 0 };
+        imeIndex = header.findIndex(h => h.startsWith('ime') || (h.includes('ime') && !h.includes('cijena') && !h.includes('pdv')));
+      }
+      
+      // Find "Cijena s PDV-om" column - be very specific
+      let cijenaIndex = header.findIndex(h => h.includes('cijena s pdv') || h.includes('cijena s pdv-om'));
+      if (cijenaIndex === -1) {
+        cijenaIndex = header.findIndex(h => h.includes('pdv') && h.includes('cijena'));
       }
       if (cijenaIndex === -1) {
-        return { success: false, message: `Nije pronađen stupac "Cijena s PDV-om" u CSV datoteci. Pronađeni stupci: ${header.join(', ')}`, imported: 0 };
+        cijenaIndex = header.findIndex(h => h.includes('cijena') && h !== 'ime');
+      }
+      
+      // Make sure we don't use the same column for both
+      if (imeIndex === cijenaIndex && imeIndex !== -1) {
+        console.log('Warning: ime and cijena matched same column, searching for different cijena column');
+        cijenaIndex = header.findIndex((h, idx) => idx !== imeIndex && h.includes('cijena'));
+      }
+
+      console.log('Found Ime index:', imeIndex, '-> column:', header[imeIndex]);
+      console.log('Found Cijena index:', cijenaIndex, '-> column:', header[cijenaIndex]);
+
+      if (imeIndex === -1) {
+        return { success: false, message: `Nije pronađen stupac "Ime". Pronađeni stupci: ${header.join(' | ')}`, imported: 0 };
+      }
+      if (cijenaIndex === -1) {
+        return { success: false, message: `Nije pronađen stupac "Cijena s PDV-om". Pronađeni stupci: ${header.join(' | ')}`, imported: 0 };
       }
 
       let importedCount = 0;
@@ -548,21 +565,30 @@ export const useInventory = () => {
       for (let i = 1; i < lines.length; i++) {
         const row = lines[i].split(delimiter).map(cell => cell.trim().replace(/"/g, ''));
         
+        if (row.length <= Math.max(imeIndex, cijenaIndex)) {
+          console.log(`Row ${i}: skipped - not enough columns (${row.length})`);
+          continue;
+        }
+
         const imeRaw = row[imeIndex];
         const cijenaRaw = row[cijenaIndex];
 
-        console.log(`Row ${i}: Ime="${imeRaw}", Cijena="${cijenaRaw}"`);
+        console.log(`Row ${i}: Ime[${imeIndex}]="${imeRaw}", Cijena[${cijenaIndex}]="${cijenaRaw}"`);
 
         if (!imeRaw) continue;
 
         // Parse price from "Cijena s PDV-om" column
-        const priceStr = (cijenaRaw || '0').replace(',', '.').replace(/[€\s]/g, '');
+        // Handle various formats: "1,50", "1.50", "1,50 €", "1.50€", etc.
+        const priceStr = (cijenaRaw || '0')
+          .replace(/\s/g, '')  // Remove all whitespace
+          .replace('€', '')    // Remove euro sign
+          .replace(',', '.');  // Convert comma to dot
         const price = parseFloat(priceStr);
         const finalPrice = isNaN(price) ? 0 : price;
         
-        console.log(`Parsed price: "${priceStr}" -> ${finalPrice}`);
+        console.log(`  -> Price parsed: "${cijenaRaw}" -> "${priceStr}" -> ${finalPrice}`);
 
-        // Parse name from "Ime" field - remove price suffix if present (e.g., "Bokserice 1.5€" → "Bokserice")
+        // Parse name from "Ime" field - remove price suffix if present
         const priceMatch = imeRaw.match(/\s+\d+(?:[.,]\d+)?\s*€?\s*$/);
         const productName = priceMatch ? imeRaw.replace(priceMatch[0], '').trim() : imeRaw.trim();
 
@@ -574,10 +600,8 @@ export const useInventory = () => {
         );
 
         if (existingItem) {
-          // Update price if item exists
           updateItem(existingItem.id, { price: finalPrice });
         } else {
-          // Add new item
           const newItem: ClothingItem = {
             id: generateId(),
             name: productName,
@@ -594,6 +618,9 @@ export const useInventory = () => {
         }
         importedCount++;
       }
+
+      console.log('=== IMPORT COMPLETE ===');
+      console.log('Total imported:', importedCount);
 
       if (importedCount === 0) {
         return { success: false, message: 'Nisu pronađeni valjani artikli za uvoz.', imported: 0 };
