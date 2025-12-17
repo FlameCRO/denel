@@ -510,35 +510,44 @@ export const useInventory = () => {
         return { success: false, message: 'CSV datoteka je prazna ili nema podataka.', imported: 0 };
       }
 
-      // Parse header to find column indices - be very flexible with matching
-      const header = lines[0].split(/[,;]/).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      // Detect delimiter (try tab, semicolon, comma)
+      const firstLine = lines[0];
+      let delimiter = ',';
+      if (firstLine.includes('\t')) delimiter = '\t';
+      else if (firstLine.includes(';')) delimiter = ';';
+      
+      console.log('Detected delimiter:', delimiter === '\t' ? 'TAB' : delimiter);
+
+      // Parse header to find column indices
+      const header = firstLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, ''));
       console.log('CSV Header:', header);
       
-      const imeIndex = header.findIndex(h => h === 'ime' || h.includes('ime'));
-      // More flexible matching for price column
-      const cijenaIndex = header.findIndex(h => 
-        h.includes('cijena s pdv') || 
-        h.includes('cijena') ||
-        h === 'price' ||
-        h.includes('pdv')
-      );
+      // Find "Ime" column - exact match first, then includes
+      let imeIndex = header.findIndex(h => h === 'ime');
+      if (imeIndex === -1) imeIndex = header.findIndex(h => h.includes('ime') && !h.includes('cijena'));
+      
+      // Find "Cijena s PDV-om" column - specific match first
+      let cijenaIndex = header.findIndex(h => h.includes('cijena s pdv'));
+      if (cijenaIndex === -1) cijenaIndex = header.findIndex(h => h.includes('pdv') && h.includes('cijena'));
+      if (cijenaIndex === -1) cijenaIndex = header.findIndex(h => h === 'cijena');
+      if (cijenaIndex === -1) cijenaIndex = header.findIndex(h => h.includes('cijena'));
 
       console.log('Ime index:', imeIndex, 'Cijena index:', cijenaIndex);
+      console.log('Ime column:', header[imeIndex], 'Cijena column:', header[cijenaIndex]);
 
       if (imeIndex === -1) {
         return { success: false, message: `Nije pronađen stupac "Ime" u CSV datoteci. Pronađeni stupci: ${header.join(', ')}`, imported: 0 };
       }
       if (cijenaIndex === -1) {
-        return { success: false, message: `Nije pronađen stupac s cijenom u CSV datoteci. Pronađeni stupci: ${header.join(', ')}`, imported: 0 };
+        return { success: false, message: `Nije pronađen stupac "Cijena s PDV-om" u CSV datoteci. Pronađeni stupci: ${header.join(', ')}`, imported: 0 };
       }
 
       let importedCount = 0;
 
       // Process data rows
       for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(/[,;]/).map(cell => cell.trim().replace(/"/g, ''));
-        if (row.length <= Math.max(imeIndex, cijenaIndex)) continue;
-
+        const row = lines[i].split(delimiter).map(cell => cell.trim().replace(/"/g, ''));
+        
         const imeRaw = row[imeIndex];
         const cijenaRaw = row[cijenaIndex];
 
@@ -546,9 +555,12 @@ export const useInventory = () => {
 
         if (!imeRaw) continue;
 
-        // Parse price from "cijena" column - allow 0 price
-        const price = parseFloat((cijenaRaw || '0').replace(',', '.').replace(/[€\s]/g, ''));
+        // Parse price from "Cijena s PDV-om" column
+        const priceStr = (cijenaRaw || '0').replace(',', '.').replace(/[€\s]/g, '');
+        const price = parseFloat(priceStr);
         const finalPrice = isNaN(price) ? 0 : price;
+        
+        console.log(`Parsed price: "${priceStr}" -> ${finalPrice}`);
 
         // Parse name from "Ime" field - remove price suffix if present (e.g., "Bokserice 1.5€" → "Bokserice")
         const priceMatch = imeRaw.match(/\s+\d+(?:[.,]\d+)?\s*€?\s*$/);
@@ -598,6 +610,14 @@ export const useInventory = () => {
     }
   }, [items, addTransaction, updateItem]);
 
+  const deleteAllItems = useCallback(() => {
+    const count = items.length;
+    setItems([]);
+    setTransactions([]);
+    setSavedCalculations([]);
+    addTransaction('all', 'Svi artikli', 'delete', count, 'Obrisani svi artikli');
+  }, [items.length, addTransaction]);
+
   return {
     items,
     transactions,
@@ -621,5 +641,6 @@ export const useInventory = () => {
     importSalesFromCSV,
     importItemsFromCSV,
     resetAllSales,
+    deleteAllItems,
   };
 };

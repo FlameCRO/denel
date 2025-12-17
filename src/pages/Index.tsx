@@ -35,6 +35,7 @@ import {
   Upload,
   Save,
   RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -60,6 +61,7 @@ const Index = () => {
     importSalesFromCSV,
     importItemsFromCSV,
     resetAllSales,
+    deleteAllItems,
   } = useInventory();
 
   const { toast } = useToast();
@@ -451,6 +453,41 @@ const Index = () => {
                     }}
                   >
                     Resetiraj
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  className="gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Obriši sve
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Obrisati sve artikle?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Ova akcija će trajno obrisati SVE artikle, povijest transakcija i spremljene kalkulacije. Ova radnja se NE MOŽE poništiti!
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Odustani</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      deleteAllItems();
+                      toast({
+                        title: 'Brisanje uspješno',
+                        description: 'Svi artikli su obrisani.',
+                        variant: 'destructive',
+                      });
+                    }}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Obriši sve
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
