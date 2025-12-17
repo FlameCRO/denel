@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Header } from '@/components/Header';
 import { StatsCard } from '@/components/StatsCard';
 import { InventoryTable } from '@/components/InventoryTable';
@@ -10,6 +10,17 @@ import { IncomingCalculationDialog } from '@/components/IncomingCalculationDialo
 import { useInventory } from '@/hooks/useInventory';
 import { ClothingItem } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   Package,
   TrendingUp,
@@ -23,9 +34,9 @@ import {
   FileInput,
   Upload,
   Save,
+  RotateCcw,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useRef } from 'react';
 
 const Index = () => {
   const {
@@ -47,6 +58,7 @@ const Index = () => {
     exportToJSON,
     importFromJSON,
     importSalesFromCSV,
+    resetAllSales,
   } = useInventory();
 
   const { toast } = useToast();
@@ -353,6 +365,39 @@ const Index = () => {
               onChange={handleImportSalesCSV}
               style={{ display: 'none', position: 'absolute', left: '-9999px' }}
             />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset prodano
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Resetirati sve prodano?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Ova akcija će postaviti prodanu količinu na 0 za sve artikle. Ova radnja se ne može poništiti.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Odustani</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      resetAllSales();
+                      toast({
+                        title: 'Reset uspješan',
+                        description: 'Sve prodane količine su postavljene na 0.',
+                      });
+                    }}
+                  >
+                    Resetiraj
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button
               variant="outline"
               onClick={() => setHistoryOpen(true)}
