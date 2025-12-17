@@ -37,10 +37,17 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Ti si asistent za parsiranje hrvatskih računa/faktura iz PDF dokumenata. 
-Tvoj zadatak je izdvojiti sljedeće podatke iz računa:
-1. PKV broj (ili broj računa)
-2. Naziv Dobavljača
+            content: `Ti si asistent za parsiranje hrvatskih primki/računa/faktura iz PDF dokumenata. 
+Tvoj zadatak je izdvojiti sljedeće podatke:
+
+1. PKV broj (ili broj računa/primke) - npr. "PKV 8", "Primka PKV 8", "Račun 123"
+   - Traži tekst poput "Primka PKV [broj]" ili "PKV [broj]" ili "Račun [broj]"
+   
+2. Naziv Dobavljača - ovo je tvrtka/osoba OD KOJE se kupuje roba
+   - Traži sekciju "Dobavljač" u dokumentu
+   - NIJE vlasnik dokumenta ili primatelj - to je onaj tko ŠALJE robu
+   - Primjer: ako piše "Dobavljač: LAMMACOST D.O.O." onda je dobavljač "LAMMACOST D.O.O."
+   
 3. Stavke s računa: naziv robe/usluge, količina, cijena s PDV-om
 
 VAŽNO za količinu:
@@ -49,13 +56,13 @@ VAŽNO za količinu:
 - Hrvatski format koristi zarez za decimale, a točku za tisuće
 
 VAŽNO za cijenu:
-- Uzmi "Cijena s PDV-om" ili "Jedinična cijena s PDV" 
+- Uzmi "Cijena s PDV-om" ili "Jedinična cijena s PDV" ili zadnji stupac s cijenom
 - Ne množiti s količinom, uzmi samo jediničnu cijenu
 
 Vrati JSON u sljedećem formatu:
 {
-  "pkv_broj": "string",
-  "dobavljac": "string",
+  "pkv_broj": "string (npr. 'PKV 8' ili 'Primka PKV 8')",
+  "dobavljac": "string (naziv dobavljača, ne vlasnika dokumenta)",
   "items": [
     {
       "naziv": "string",
