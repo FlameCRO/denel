@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ClothingItem, InventoryTransaction } from '@/types/inventory';
-
+import { ClothingItem, InventoryTransaction, SavedCalculation } from '@/types/inventory';
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const initialItems: ClothingItem[] = [
@@ -64,7 +63,7 @@ const initialItems: ClothingItem[] = [
 export const useInventory = () => {
   const [items, setItems] = useState<ClothingItem[]>(initialItems);
   const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
-
+  const [savedCalculations, setSavedCalculations] = useState<SavedCalculation[]>([]);
   const addTransaction = useCallback((
     itemId: string,
     itemName: string,
@@ -160,8 +159,25 @@ export const useInventory = () => {
 
   const addIncomingCalculation = useCallback((
     invoiceName: string,
-    incomingItems: Array<{ name: string; category: string; price: number; quantity: number }>
+    incomingItems: Array<{ id: string; name: string; category: string; price: number; quantity: number }>
   ) => {
+    // Save the calculation
+    const newCalculation: SavedCalculation = {
+      id: generateId(),
+      name: invoiceName,
+      items: incomingItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+      totalValue: incomingItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      totalQuantity: incomingItems.reduce((sum, item) => sum + item.quantity, 0),
+      createdAt: new Date(),
+    };
+    setSavedCalculations(prev => [newCalculation, ...prev]);
+
     incomingItems.forEach(incomingItem => {
       // Check if item already exists
       const existingItem = items.find(
@@ -278,6 +294,7 @@ export const useInventory = () => {
   return {
     items,
     transactions,
+    savedCalculations,
     addItem,
     updateItem,
     deleteItem,

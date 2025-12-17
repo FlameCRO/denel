@@ -28,6 +28,7 @@ const Index = () => {
   const {
     items,
     transactions,
+    savedCalculations,
     addItem,
     updateItem,
     deleteItem,
@@ -129,7 +130,7 @@ const Index = () => {
 
   const handleIncomingCalculation = (
     invoiceName: string,
-    incomingItems: Array<{ name: string; category: string; price: number; quantity: number }>
+    incomingItems: Array<{ id: string; name: string; category: string; price: number; quantity: number }>
   ) => {
     addIncomingCalculation(invoiceName, incomingItems);
     toast({
@@ -285,6 +286,7 @@ const Index = () => {
         open={incomingCalcOpen}
         onOpenChange={setIncomingCalcOpen}
         onSave={handleIncomingCalculation}
+        savedCalculations={savedCalculations}
       />
     </div>
   );

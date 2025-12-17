@@ -20,6 +20,23 @@ export interface InventoryTransaction {
   details?: string;
 }
 
+export interface SavedCalculationItem {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  quantity: number;
+}
+
+export interface SavedCalculation {
+  id: string;
+  name: string;
+  items: SavedCalculationItem[];
+  totalValue: number;
+  totalQuantity: number;
+  createdAt: Date;
+}
+
 export type CategoryType = 'majice' | 'hlače' | 'haljine' | 'jakne' | 'obuća' | 'dodaci' | 'ostalo';
 
 export const CATEGORIES: { value: CategoryType; label: string }[] = [
