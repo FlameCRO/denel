@@ -405,6 +405,93 @@ export const useInventory = () => {
     }
   }, []);
 
+  const importSalesFromCSV = useCallback((csvString: string): { success: boolean; message: string; imported: number; notFound: string[] } => {
+    try {
+      const lines = csvString.split('\n').filter(line => line.trim());
+      if (lines.length < 2) {
+        return { success: false, message: 'CSV datoteka je prazna ili nema podataka.', imported: 0, notFound: [] };
+      }
+
+      // Parse header to find column indices
+      const header = lines[0].split(/[,;]/).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      const proizvodIndex = header.findIndex(h => h === 'proizvod' || h.includes('proizvod'));
+      const kolicinaIndex = header.findIndex(h => h === 'količina' || h === 'kolicina' || h.includes('količ') || h.includes('kolic'));
+
+      if (proizvodIndex === -1) {
+        return { success: false, message: 'Nije pronađen stupac "proizvod" u CSV datoteci.', imported: 0, notFound: [] };
+      }
+      if (kolicinaIndex === -1) {
+        return { success: false, message: 'Nije pronađen stupac "količina" u CSV datoteci.', imported: 0, notFound: [] };
+      }
+
+      let importedCount = 0;
+      const notFoundItems: string[] = [];
+
+      // Process data rows
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i].split(/[,;]/).map(cell => cell.trim().replace(/"/g, ''));
+        if (row.length <= Math.max(proizvodIndex, kolicinaIndex)) continue;
+
+        const proizvodRaw = row[proizvodIndex];
+        const kolicinaRaw = row[kolicinaIndex];
+
+        if (!proizvodRaw || !kolicinaRaw) continue;
+
+        // Parse quantity
+        const quantity = parseInt(kolicinaRaw, 10);
+        if (isNaN(quantity) || quantity <= 0) continue;
+
+        // Parse product name and price from "proizvod" field (e.g., "hlače 7€" or "hlače 7")
+        const priceMatch = proizvodRaw.match(/(\d+(?:[.,]\d+)?)\s*€?$/);
+        let productName = proizvodRaw;
+        let productPrice: number | null = null;
+
+        if (priceMatch) {
+          productPrice = parseFloat(priceMatch[1].replace(',', '.'));
+          productName = proizvodRaw.replace(priceMatch[0], '').trim();
+        }
+
+        // Find matching item by name (case-insensitive) and price
+        const matchingItem = items.find(item => {
+          const nameMatch = item.name.toLowerCase().includes(productName.toLowerCase()) || 
+                           productName.toLowerCase().includes(item.name.toLowerCase());
+          
+          if (productPrice !== null) {
+            // Match by name AND price
+            return nameMatch && Math.abs(item.price - productPrice) < 0.01;
+          }
+          // Match by name only if no price extracted
+          return nameMatch;
+        });
+
+        if (matchingItem) {
+          recordSale(matchingItem.id, quantity);
+          importedCount++;
+        } else {
+          notFoundItems.push(`${proizvodRaw} (količina: ${quantity})`);
+        }
+      }
+
+      if (importedCount === 0 && notFoundItems.length > 0) {
+        return { 
+          success: false, 
+          message: `Nijedan artikl nije pronađen u inventuri.`, 
+          imported: 0, 
+          notFound: notFoundItems 
+        };
+      }
+
+      return { 
+        success: true, 
+        message: `Uspješno uvezeno ${importedCount} prodaja.`, 
+        imported: importedCount, 
+        notFound: notFoundItems 
+      };
+    } catch (error) {
+      return { success: false, message: 'Greška pri čitanju CSV datoteke.', imported: 0, notFound: [] };
+    }
+  }, [items, recordSale]);
+
   return {
     items,
     transactions,
@@ -425,5 +512,6 @@ export const useInventory = () => {
     exportToCSV,
     exportToJSON,
     importFromJSON,
+    importSalesFromCSV,
   };
 };

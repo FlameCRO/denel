@@ -46,10 +46,12 @@ const Index = () => {
     exportToCSV,
     exportToJSON,
     importFromJSON,
+    importSalesFromCSV,
   } = useInventory();
 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const csvSalesInputRef = useRef<HTMLInputElement>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<ClothingItem | null>(null);
   const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
@@ -172,6 +174,39 @@ const Index = () => {
     }
   };
 
+  const handleImportSalesCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      const result = importSalesFromCSV(content);
+      
+      if (result.success) {
+        let description = result.message;
+        if (result.notFound.length > 0) {
+          description += ` (${result.notFound.length} nije pronađeno)`;
+        }
+        toast({
+          title: 'Uvoz prodaja uspješan',
+          description,
+        });
+      } else {
+        toast({
+          title: 'Greška pri uvozu',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    };
+    reader.readAsText(file);
+    
+    if (csvSalesInputRef.current) {
+      csvSalesInputRef.current.value = '';
+    }
+  };
+
   const handleIncomingCalculation = (
     invoiceName: string,
     incomingItems: Array<{ id: string; name: string; category: string; price: number; quantity: number }>
@@ -272,6 +307,21 @@ const Index = () => {
               type="file"
               accept=".json"
               onChange={handleImportJSON}
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              onClick={() => csvSalesInputRef.current?.click()}
+              className="gap-2"
+            >
+              <FileInput className="h-4 w-4" />
+              Uvezi prodaju (CSV)
+            </Button>
+            <input
+              ref={csvSalesInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleImportSalesCSV}
               className="hidden"
             />
             <Button
