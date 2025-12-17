@@ -125,6 +125,7 @@ export const InventoryTable = ({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className="font-semibold w-12">#</TableHead>
               <TableHead className="font-semibold">Artikl</TableHead>
               <TableHead className="font-semibold">Kategorija</TableHead>
               <TableHead className="font-semibold text-right">Cijena</TableHead>
@@ -138,7 +139,7 @@ export const InventoryTable = ({
           <TableBody>
             {filteredItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                   <Package className="mx-auto h-8 w-8 mb-2 opacity-50" />
                   Nema artikala za prikaz
                 </TableCell>
@@ -152,6 +153,7 @@ export const InventoryTable = ({
                     className="group transition-colors hover:bg-muted/30"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
+                    <TableCell className="text-muted-foreground">{index + 1}</TableCell>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-normal">
