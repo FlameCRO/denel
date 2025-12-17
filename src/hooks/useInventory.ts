@@ -492,6 +492,16 @@ export const useInventory = () => {
     }
   }, [items, recordSale]);
 
+  const resetAllSales = useCallback(() => {
+    setItems(prev => prev.map(item => ({
+      ...item,
+      quantitySold: 0,
+      updatedAt: new Date(),
+    })));
+    // Add a transaction for the reset
+    addTransaction('all', 'Svi artikli', 'sale', 0, 'Reset prodaje - sve svedeno na 0');
+  }, [addTransaction]);
+
   return {
     items,
     transactions,
@@ -513,5 +523,6 @@ export const useInventory = () => {
     exportToJSON,
     importFromJSON,
     importSalesFromCSV,
+    resetAllSales,
   };
 };
