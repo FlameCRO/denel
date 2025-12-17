@@ -224,9 +224,11 @@ export const useInventory = () => {
     setSavedCalculations(prev => [newCalculation, ...prev]);
 
     incomingItems.forEach(incomingItem => {
-      // Check if item already exists
+      // Check if item already exists (must match name, category AND price)
       const existingItem = items.find(
-        i => i.name.toLowerCase() === incomingItem.name.toLowerCase() && i.category === incomingItem.category
+        i => i.name.toLowerCase() === incomingItem.name.toLowerCase() && 
+             i.category === incomingItem.category &&
+             i.price === incomingItem.price
       );
 
       if (existingItem) {
