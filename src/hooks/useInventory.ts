@@ -158,6 +158,61 @@ export const useInventory = () => {
     });
   }, [addTransaction]);
 
+  const addIncomingCalculation = useCallback((
+    invoiceName: string,
+    incomingItems: Array<{ name: string; category: string; price: number; quantity: number }>
+  ) => {
+    incomingItems.forEach(incomingItem => {
+      // Check if item already exists
+      const existingItem = items.find(
+        i => i.name.toLowerCase() === incomingItem.name.toLowerCase() && i.category === incomingItem.category
+      );
+
+      if (existingItem) {
+        // Update existing item
+        setItems(prev => prev.map(item =>
+          item.id === existingItem.id
+            ? {
+                ...item,
+                quantityIncoming: item.quantityIncoming + incomingItem.quantity,
+                quantityOwned: item.quantityOwned + incomingItem.quantity,
+                price: incomingItem.price > 0 ? incomingItem.price : item.price,
+                updatedAt: new Date(),
+              }
+            : item
+        ));
+        addTransaction(
+          existingItem.id,
+          existingItem.name,
+          'incoming',
+          incomingItem.quantity,
+          `Ulazna kalkulacija: ${invoiceName}`
+        );
+      } else {
+        // Add new item
+        const newItem: ClothingItem = {
+          id: generateId(),
+          name: incomingItem.name,
+          category: incomingItem.category,
+          price: incomingItem.price,
+          quantityOwned: incomingItem.quantity,
+          quantitySold: 0,
+          quantityIncoming: incomingItem.quantity,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        setItems(prev => [...prev, newItem]);
+        addTransaction(
+          newItem.id,
+          newItem.name,
+          'incoming',
+          incomingItem.quantity,
+          `Ulazna kalkulacija: ${invoiceName} (novi artikl)`
+        );
+      }
+    });
+  }, [items, addTransaction]);
+
   const getRemaining = (item: ClothingItem) => {
     return item.quantityOwned;
   };
@@ -228,6 +283,7 @@ export const useInventory = () => {
     deleteItem,
     recordSale,
     recordIncoming,
+    addIncomingCalculation,
     getRemaining,
     getTotalValue,
     getTotalSalesValue,
