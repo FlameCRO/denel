@@ -513,13 +513,13 @@ export const useInventory = () => {
       // Parse header to find column indices
       const header = lines[0].split(/[,;]/).map(h => h.trim().toLowerCase().replace(/"/g, ''));
       const imeIndex = header.findIndex(h => h === 'ime' || h.includes('ime'));
-      const cijenaIndex = header.findIndex(h => h === 'cijena' || h.includes('cijena'));
+      const cijenaIndex = header.findIndex(h => h === 'cijena s pdv-om' || h === 'cijena s pdv' || h.includes('cijena s pdv'));
 
       if (imeIndex === -1) {
         return { success: false, message: 'Nije pronađen stupac "Ime" u CSV datoteci.', imported: 0 };
       }
       if (cijenaIndex === -1) {
-        return { success: false, message: 'Nije pronađen stupac "cijena" u CSV datoteci.', imported: 0 };
+        return { success: false, message: 'Nije pronađen stupac "Cijena s PDV-om" u CSV datoteci.', imported: 0 };
       }
 
       let importedCount = 0;
