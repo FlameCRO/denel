@@ -4,6 +4,8 @@ import { StatsCard } from '@/components/StatsCard';
 import { InventoryTable } from '@/components/InventoryTable';
 import { AddItemDialog } from '@/components/AddItemDialog';
 import { QuantityDialog } from '@/components/QuantityDialog';
+import { DailyReportDialog } from '@/components/DailyReportDialog';
+import { TransactionHistoryDialog } from '@/components/TransactionHistoryDialog';
 import { useInventory } from '@/hooks/useInventory';
 import { ClothingItem } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
@@ -14,12 +16,16 @@ import {
   AlertTriangle,
   Plus,
   Euro,
+  FileText,
+  Download,
+  History,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const {
     items,
+    transactions,
     addItem,
     updateItem,
     deleteItem,
@@ -28,6 +34,9 @@ const Index = () => {
     getTotalValue,
     getTotalSalesValue,
     getLowStockItems,
+    getTodaySales,
+    getTodayIncoming,
+    exportToCSV,
   } = useInventory();
 
   const { toast } = useToast();
@@ -36,6 +45,8 @@ const Index = () => {
   const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
   const [quantityDialogType, setQuantityDialogType] = useState<'sale' | 'incoming'>('sale');
   const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
+  const [dailyReportOpen, setDailyReportOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('hr-HR', {
@@ -104,6 +115,14 @@ const Index = () => {
     }
   };
 
+  const handleExportCSV = () => {
+    exportToCSV();
+    toast({
+      title: 'Izvoz uspješan',
+      description: 'CSV datoteka je preuzeta.',
+    });
+  };
+
   const totalItems = items.reduce((sum, item) => sum + item.quantityOwned, 0);
   const totalSold = items.reduce((sum, item) => sum + item.quantitySold, 0);
   const lowStockCount = getLowStockItems().length;
@@ -153,18 +172,44 @@ const Index = () => {
         </div>
 
         {/* Actions Bar */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <h2 className="text-2xl font-semibold text-foreground">Inventura</h2>
-          <Button
-            onClick={() => {
-              setEditItem(null);
-              setAddDialogOpen(true);
-            }}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Dodaj artikl
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={() => setDailyReportOpen(true)}
+              className="gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Dnevni izvještaj
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleExportCSV}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Izvezi CSV
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setHistoryOpen(true)}
+              className="gap-2"
+            >
+              <History className="h-4 w-4" />
+              Povijest
+            </Button>
+            <Button
+              onClick={() => {
+                setEditItem(null);
+                setAddDialogOpen(true);
+              }}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Dodaj artikl
+            </Button>
+          </div>
         </div>
 
         {/* Inventory Table */}
@@ -194,6 +239,23 @@ const Index = () => {
         item={selectedItem}
         type={quantityDialogType}
         onConfirm={handleQuantityConfirm}
+      />
+
+      <DailyReportDialog
+        open={dailyReportOpen}
+        onOpenChange={setDailyReportOpen}
+        items={items}
+        transactions={transactions}
+        todaySales={getTodaySales()}
+        todayIncoming={getTodayIncoming()}
+        totalValue={getTotalValue()}
+        totalSalesValue={getTotalSalesValue()}
+      />
+
+      <TransactionHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        transactions={transactions}
       />
     </div>
   );
