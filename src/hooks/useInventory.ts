@@ -1,6 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ClothingItem, InventoryTransaction, SavedCalculation } from '@/types/inventory';
+
 const generateId = () => Math.random().toString(36).substr(2, 9);
+const STORAGE_KEY = 'inventura_data';
 
 const initialItems: ClothingItem[] = [
   {
@@ -60,10 +62,50 @@ const initialItems: ClothingItem[] = [
   },
 ];
 
+const loadFromLocalStorage = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
+      return {
+        items: data.items?.map((item: any) => ({
+          ...item,
+          createdAt: new Date(item.createdAt),
+          updatedAt: new Date(item.updatedAt),
+        })) || initialItems,
+        transactions: data.transactions?.map((t: any) => ({
+          ...t,
+          timestamp: new Date(t.timestamp),
+        })) || [],
+        savedCalculations: data.savedCalculations?.map((c: any) => ({
+          ...c,
+          createdAt: new Date(c.createdAt),
+        })) || [],
+      };
+    }
+  } catch (error) {
+    console.error('Error loading from localStorage:', error);
+  }
+  return { items: initialItems, transactions: [], savedCalculations: [] };
+};
+
 export const useInventory = () => {
-  const [items, setItems] = useState<ClothingItem[]>(initialItems);
-  const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
-  const [savedCalculations, setSavedCalculations] = useState<SavedCalculation[]>([]);
+  const storedData = loadFromLocalStorage();
+  const [items, setItems] = useState<ClothingItem[]>(storedData.items);
+  const [transactions, setTransactions] = useState<InventoryTransaction[]>(storedData.transactions);
+  const [savedCalculations, setSavedCalculations] = useState<SavedCalculation[]>(storedData.savedCalculations);
+
+  // Auto-save to localStorage
+  useEffect(() => {
+    const data = {
+      items,
+      transactions,
+      savedCalculations,
+      lastSaved: new Date().toISOString(),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }, [items, transactions, savedCalculations]);
+
   const addTransaction = useCallback((
     itemId: string,
     itemName: string,
