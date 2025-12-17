@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SavedCalculation } from '@/types/inventory';
 import { Category } from '@/hooks/useCategories';
-import { Plus, Trash2, FileInput, History, FileText, ChevronDown, ChevronUp, Upload, Loader2 } from 'lucide-react';
+import { Plus, Trash2, FileInput, History, FileText, ChevronDown, ChevronUp, Upload, Loader2, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { hr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,6 +56,8 @@ export const IncomingCalculationDialog = ({
   ]);
   const [expandedCalculations, setExpandedCalculations] = useState<Set<string>>(new Set());
   const [isParsingPdf, setIsParsingPdf] = useState(false);
+  const [uploadedPdfUrl, setUploadedPdfUrl] = useState<string | null>(null);
+  const [uploadedPdfName, setUploadedPdfName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -97,6 +99,11 @@ export const IncomingCalculationDialog = ({
       });
       return;
     }
+
+    // Store PDF for preview
+    const pdfUrl = URL.createObjectURL(file);
+    setUploadedPdfUrl(pdfUrl);
+    setUploadedPdfName(file.name);
 
     setIsParsingPdf(true);
 
@@ -167,6 +174,12 @@ export const IncomingCalculationDialog = ({
     }
   };
 
+  const handleViewPdf = () => {
+    if (uploadedPdfUrl) {
+      window.open(uploadedPdfUrl, '_blank');
+    }
+  };
+
   const handleAddRow = () => {
     setItems([
       ...items,
@@ -197,6 +210,12 @@ export const IncomingCalculationDialog = ({
   const handleReset = () => {
     setInvoiceName('');
     setItems([{ id: generateId(), name: '', category: 'majice', price: 0, quantity: 1 }]);
+    // Clean up PDF URL to free memory
+    if (uploadedPdfUrl) {
+      URL.revokeObjectURL(uploadedPdfUrl);
+    }
+    setUploadedPdfUrl(null);
+    setUploadedPdfName(null);
   };
 
   const toggleExpanded = (id: string) => {
@@ -270,9 +289,26 @@ export const IncomingCalculationDialog = ({
                   </>
                 )}
               </Button>
-              <span className="text-sm text-muted-foreground">
-                Automatski učitaj podatke iz računa/fakture
-              </span>
+              {uploadedPdfUrl ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleViewPdf}
+                  className="gap-2"
+                >
+                  <Eye className="h-4 w-4" />
+                  Pregledaj PDF
+                </Button>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  Automatski učitaj podatke iz računa/fakture
+                </span>
+              )}
+              {uploadedPdfName && (
+                <span className="text-sm text-muted-foreground truncate max-w-[200px]" title={uploadedPdfName}>
+                  {uploadedPdfName}
+                </span>
+              )}
             </div>
 
             {/* Invoice Name */}
