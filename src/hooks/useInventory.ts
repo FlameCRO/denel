@@ -276,6 +276,33 @@ export const useInventory = () => {
     });
   }, [items, addTransaction]);
 
+  const updateIncomingCalculation = useCallback((
+    calculationId: string,
+    invoiceName: string,
+    incomingItems: Array<{ id: string; name: string; category: string; price: number; quantity: number }>,
+    pdfData?: { base64: string; fileName: string }
+  ) => {
+    setSavedCalculations(prev => prev.map(calc => 
+      calc.id === calculationId
+        ? {
+            ...calc,
+            name: invoiceName,
+            items: incomingItems.map(item => ({
+              id: item.id,
+              name: item.name,
+              category: item.category,
+              price: item.price,
+              quantity: item.quantity,
+            })),
+            totalValue: incomingItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+            totalQuantity: incomingItems.reduce((sum, item) => sum + item.quantity, 0),
+            pdfBase64: pdfData?.base64 || calc.pdfBase64,
+            pdfFileName: pdfData?.fileName || calc.pdfFileName,
+          }
+        : calc
+    ));
+  }, []);
+
   const getRemaining = (item: ClothingItem) => {
     return item.quantityOwned;
   };
@@ -916,6 +943,7 @@ export const useInventory = () => {
     recordSale,
     recordIncoming,
     addIncomingCalculation,
+    updateIncomingCalculation,
     getRemaining,
     getTotalValue,
     getTotalSalesValue,

@@ -52,6 +52,7 @@ const Index = () => {
     recordSale,
     recordIncoming,
     addIncomingCalculation,
+    updateIncomingCalculation,
     getTotalValue,
     getTotalSalesValue,
     getLowStockItems,
@@ -362,6 +363,15 @@ const Index = () => {
     });
   };
 
+  const handleUpdateCalculation = (
+    calculationId: string,
+    invoiceName: string,
+    incomingItems: Array<{ id: string; name: string; category: string; price: number; quantity: number }>,
+    pdfData?: { base64: string; fileName: string }
+  ) => {
+    updateIncomingCalculation(calculationId, invoiceName, incomingItems, pdfData);
+  };
+
   const totalItems = items.reduce((sum, item) => sum + item.quantityOwned, 0);
   const totalSold = items.reduce((sum, item) => sum + item.quantitySold, 0);
   const lowStockCount = getLowStockItems().length;
@@ -649,6 +659,7 @@ const Index = () => {
         open={incomingCalcOpen}
         onOpenChange={setIncomingCalcOpen}
         onSave={handleIncomingCalculation}
+        onUpdate={handleUpdateCalculation}
         savedCalculations={savedCalculations}
         categories={categories}
       />
