@@ -812,8 +812,32 @@ export const useInventory = () => {
 
         if (!artikl) continue;
 
-        // Parse price - handle both "14,00" and "14.00" formats
-        const cijena = parseFloat(cijenaRaw?.replace(',', '.') || '0') || 0;
+        // Parse price - handle various formats: "1,50", "1.50", "1,50 €", "1.234,56 €", etc.
+        let priceStr = cijenaRaw || '0';
+        console.log(`  -> Original price string: "${priceStr}"`);
+        
+        // Remove all non-numeric characters except comma and dot
+        priceStr = priceStr.replace(/[^\d,.\-]/g, '');
+        console.log(`  -> After removing non-numeric: "${priceStr}"`);
+        
+        // If there's both dot and comma, determine which is decimal separator
+        if (priceStr.includes(',') && priceStr.includes('.')) {
+          // If comma comes after dot, comma is decimal (European: 1.234,56)
+          if (priceStr.lastIndexOf(',') > priceStr.lastIndexOf('.')) {
+            priceStr = priceStr.replace(/\./g, '').replace(',', '.');
+          } else {
+            // Dot is decimal (US: 1,234.56)
+            priceStr = priceStr.replace(/,/g, '');
+          }
+        } else if (priceStr.includes(',')) {
+          // Only comma - treat as decimal separator (European)
+          priceStr = priceStr.replace(',', '.');
+        }
+        
+        console.log(`  -> Final price string: "${priceStr}"`);
+        const parsedPrice = parseFloat(priceStr);
+        const cijena = isNaN(parsedPrice) ? 0 : parsedPrice;
+        console.log(`  -> Parsed price: ${cijena}`);
         
         // Parse quantity
         const ostaloKomada = parseInt(ostaloRaw || '0', 10) || 0;
