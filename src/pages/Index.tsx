@@ -6,6 +6,7 @@ import { AddItemDialog } from '@/components/AddItemDialog';
 import { QuantityDialog } from '@/components/QuantityDialog';
 import { DailyReportDialog } from '@/components/DailyReportDialog';
 import { TransactionHistoryDialog } from '@/components/TransactionHistoryDialog';
+import { IncomingCalculationDialog } from '@/components/IncomingCalculationDialog';
 import { useInventory } from '@/hooks/useInventory';
 import { ClothingItem } from '@/types/inventory';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import {
   FileText,
   Download,
   History,
+  FileInput,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -31,6 +33,7 @@ const Index = () => {
     deleteItem,
     recordSale,
     recordIncoming,
+    addIncomingCalculation,
     getTotalValue,
     getTotalSalesValue,
     getLowStockItems,
@@ -47,6 +50,7 @@ const Index = () => {
   const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
   const [dailyReportOpen, setDailyReportOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [incomingCalcOpen, setIncomingCalcOpen] = useState(false);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('hr-HR', {
@@ -120,6 +124,17 @@ const Index = () => {
     toast({
       title: 'Izvoz uspješan',
       description: 'CSV datoteka je preuzeta.',
+    });
+  };
+
+  const handleIncomingCalculation = (
+    invoiceName: string,
+    incomingItems: Array<{ name: string; category: string; price: number; quantity: number }>
+  ) => {
+    addIncomingCalculation(invoiceName, incomingItems);
+    toast({
+      title: 'Kalkulacija spremljena',
+      description: `${invoiceName} - dodano ${incomingItems.length} artikala.`,
     });
   };
 
@@ -200,6 +215,14 @@ const Index = () => {
               Povijest
             </Button>
             <Button
+              variant="secondary"
+              onClick={() => setIncomingCalcOpen(true)}
+              className="gap-2"
+            >
+              <FileInput className="h-4 w-4" />
+              Ulazna kalkulacija
+            </Button>
+            <Button
               onClick={() => {
                 setEditItem(null);
                 setAddDialogOpen(true);
@@ -256,6 +279,12 @@ const Index = () => {
         open={historyOpen}
         onOpenChange={setHistoryOpen}
         transactions={transactions}
+      />
+
+      <IncomingCalculationDialog
+        open={incomingCalcOpen}
+        onOpenChange={setIncomingCalcOpen}
+        onSave={handleIncomingCalculation}
       />
     </div>
   );
