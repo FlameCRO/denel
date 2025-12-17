@@ -291,6 +291,78 @@ export const useInventory = () => {
     link.click();
   };
 
+  const exportToJSON = useCallback(() => {
+    const data = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      items,
+      transactions,
+      savedCalculations,
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `inventura_backup_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+  }, [items, transactions, savedCalculations]);
+
+  const importFromJSON = useCallback((jsonString: string): { success: boolean; message: string } => {
+    try {
+      const data = JSON.parse(jsonString);
+      
+      if (!data.items || !Array.isArray(data.items)) {
+        return { success: false, message: 'Nevažeća JSON datoteka - nedostaju artikli.' };
+      }
+
+      // Validate items structure
+      const validItems = data.items.every((item: any) => 
+        item.name && item.category && typeof item.price === 'number'
+      );
+      
+      if (!validItems) {
+        return { success: false, message: 'Nevažeća struktura artikala u JSON datoteci.' };
+      }
+
+      // Import items with new IDs to avoid conflicts
+      const importedItems: ClothingItem[] = data.items.map((item: any) => ({
+        ...item,
+        id: generateId(),
+        createdAt: new Date(item.createdAt || new Date()),
+        updatedAt: new Date(item.updatedAt || new Date()),
+      }));
+
+      setItems(importedItems);
+
+      // Import transactions if available
+      if (data.transactions && Array.isArray(data.transactions)) {
+        const importedTransactions: InventoryTransaction[] = data.transactions.map((t: any) => ({
+          ...t,
+          id: generateId(),
+          timestamp: new Date(t.timestamp || new Date()),
+        }));
+        setTransactions(importedTransactions);
+      }
+
+      // Import saved calculations if available
+      if (data.savedCalculations && Array.isArray(data.savedCalculations)) {
+        const importedCalculations: SavedCalculation[] = data.savedCalculations.map((c: any) => ({
+          ...c,
+          id: generateId(),
+          createdAt: new Date(c.createdAt || new Date()),
+        }));
+        setSavedCalculations(importedCalculations);
+      }
+
+      return { 
+        success: true, 
+        message: `Uspješno uvezeno ${importedItems.length} artikala.` 
+      };
+    } catch (error) {
+      return { success: false, message: 'Greška pri čitanju JSON datoteke.' };
+    }
+  }, []);
+
   return {
     items,
     transactions,
@@ -309,5 +381,7 @@ export const useInventory = () => {
     getTodaySales,
     getTodayIncoming,
     exportToCSV,
+    exportToJSON,
+    importFromJSON,
   };
 };
