@@ -217,11 +217,22 @@ const Index = () => {
         if (result.success) {
           let description = result.message;
           if (result.notFound.length > 0) {
-            description += ` (${result.notFound.length} nije pronađeno)`;
+            description += `\n\nNepronađeni artikli (${result.notFound.length}):`;
+            // Show first 10 not found items
+            const itemsToShow = result.notFound.slice(0, 10);
+            description += '\n' + itemsToShow.join('\n');
+            if (result.notFound.length > 10) {
+              description += `\n... i još ${result.notFound.length - 10} artikala`;
+            }
           }
           toast({
             title: 'Uvoz prodaja uspješan',
-            description,
+            description: (
+              <pre className="whitespace-pre-wrap text-xs max-h-[300px] overflow-y-auto">
+                {description}
+              </pre>
+            ),
+            duration: result.notFound.length > 0 ? 15000 : 5000,
           });
         } else {
           toast({
