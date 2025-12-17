@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SavedCalculation } from '@/types/inventory';
 import { Category } from '@/hooks/useCategories';
-import { Plus, Trash2, FileInput, History, FileText, ChevronDown, ChevronUp, Upload, Loader2, Eye } from 'lucide-react';
+import { Plus, Trash2, FileInput, History, FileText, ChevronDown, ChevronUp, Upload, Loader2, Eye, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { hr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,6 +37,7 @@ interface IncomingCalculationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (invoiceName: string, items: IncomingItem[], pdfData?: { base64: string; fileName: string }) => void;
+  onUpdate?: (calculationId: string, invoiceName: string, items: IncomingItem[], pdfData?: { base64: string; fileName: string }) => void;
   savedCalculations: SavedCalculation[];
   categories: Category[];
 }
@@ -47,6 +48,7 @@ export const IncomingCalculationDialog = ({
   open,
   onOpenChange,
   onSave,
+  onUpdate,
   savedCalculations,
   categories,
 }: IncomingCalculationDialogProps) => {
@@ -59,6 +61,8 @@ export const IncomingCalculationDialog = ({
   const [uploadedPdfUrl, setUploadedPdfUrl] = useState<string | null>(null);
   const [uploadedPdfName, setUploadedPdfName] = useState<string | null>(null);
   const [uploadedPdfBase64, setUploadedPdfBase64] = useState<string | null>(null);
+  const [editingCalculationId, setEditingCalculationId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('new');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -209,14 +213,41 @@ export const IncomingCalculationDialog = ({
       const pdfData = uploadedPdfBase64 && uploadedPdfName 
         ? { base64: uploadedPdfBase64, fileName: uploadedPdfName }
         : undefined;
-      onSave(invoiceName.trim(), validItems, pdfData);
+      
+      if (editingCalculationId && onUpdate) {
+        onUpdate(editingCalculationId, invoiceName.trim(), validItems, pdfData);
+        toast({
+          title: 'Kalkulacija ažurirana',
+          description: `"${invoiceName.trim()}" je uspješno ažurirana.`,
+        });
+      } else {
+        onSave(invoiceName.trim(), validItems, pdfData);
+      }
       handleReset();
     }
+  };
+
+  const handleEdit = (calc: SavedCalculation) => {
+    setEditingCalculationId(calc.id);
+    setInvoiceName(calc.name);
+    setItems(calc.items.map(item => ({
+      id: generateId(),
+      name: item.name,
+      category: item.category,
+      price: item.price,
+      quantity: item.quantity,
+    })));
+    if (calc.pdfBase64) {
+      setUploadedPdfBase64(calc.pdfBase64);
+      setUploadedPdfName(calc.pdfFileName || 'faktura.pdf');
+    }
+    setActiveTab('new');
   };
 
   const handleReset = () => {
     setInvoiceName('');
     setItems([{ id: generateId(), name: '', category: 'majice', price: 0, quantity: 1 }]);
+    setEditingCalculationId(null);
     // Clean up PDF URL to free memory
     if (uploadedPdfUrl) {
       URL.revokeObjectURL(uploadedPdfUrl);
@@ -268,11 +299,11 @@ export const IncomingCalculationDialog = ({
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="new" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="new" className="gap-2">
               <FileText className="h-4 w-4" />
-              Nova kalkulacija
+              {editingCalculationId ? 'Uredi kalkulaciju' : 'Nova kalkulacija'}
             </TabsTrigger>
             <TabsTrigger value="history" className="gap-2">
               <History className="h-4 w-4" />
@@ -462,7 +493,7 @@ export const IncomingCalculationDialog = ({
                 onClick={handleSave}
                 disabled={!invoiceName.trim() || items.every(i => !i.name.trim())}
               >
-                Spremi kalkulaciju
+                {editingCalculationId ? 'Ažuriraj kalkulaciju' : 'Spremi kalkulaciju'}
               </Button>
             </DialogFooter>
           </TabsContent>
@@ -488,6 +519,19 @@ export const IncomingCalculationDialog = ({
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <h4 className="font-semibold text-foreground">{calc.name}</h4>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(calc);
+                            }}
+                            className="h-7 gap-1 text-xs"
+                          >
+                            <Pencil className="h-3 w-3" />
+                            Uredi
+                          </Button>
                           {calc.pdfBase64 && (
                             <Button
                               type="button"

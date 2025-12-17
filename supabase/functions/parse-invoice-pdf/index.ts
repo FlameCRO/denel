@@ -38,48 +38,48 @@ serve(async (req) => {
           {
             role: 'system',
             content: `Ti si asistent za parsiranje hrvatskih primki/računa/faktura iz PDF dokumenata. 
-Tvoj zadatak je izdvojiti sljedeće podatke:
 
-1. PKV broj (ili broj računa/primke) - npr. "PKV 8", "Primka PKV 8", "Račun 123"
-   - Traži tekst poput "Primka PKV [broj]" ili "PKV [broj]" ili "Račun [broj]"
+TVOJ ZADATAK:
+Izvuci ove podatke iz dokumenta:
+
+1. PKV BROJ ili BROJ RAČUNA
+   - Traži: "Primka PKV [broj]" ili "PKV [broj]" ili "Račun br." ili slično
+   - Primjer: "Primka PKV 8" → vrati "PKV 8"
    
-2. Naziv Dobavljača - ovo je tvrtka/osoba OD KOJE se kupuje roba
-   - Traži sekciju "Dobavljač" u dokumentu
-   - NIJE vlasnik dokumenta ili primatelj - to je onaj tko ŠALJE robu
-   - Primjer: ako piše "Dobavljač: LAMMACOST D.O.O." onda je dobavljač "LAMMACOST D.O.O."
+2. NAZIV DOBAVLJAČA (SUPPLIER)
+   - PAŽNJA: Dobavljač je tvrtka koja ŠALJE/PRODAJE robu, NE primatelj!
+   - U dokumentu traži tablicu ili sekciju s naslovom "Dobavljač"
+   - Dobavljač je u toj tablici, NE na vrhu dokumenta
+   - Na vrhu dokumenta je PRIMATELJ (npr. "Trgovački obrt DENEL") - TO NIJE DOBAVLJAČ!
+   - Primjer: ako tablica "Dobavljač" sadrži "LAMMACOST D.O.O." → vrati "LAMMACOST D.O.O."
    
-3. Stavke s računa: naziv robe/usluge, količina, cijena s PDV-om
+3. STAVKE S RAČUNA
+   - naziv robe/usluge
+   - količina (komadi)
+   - jedinična cijena s PDV-om
 
-VAŽNO za količinu:
-- Ako je količina napisana kao "28,000" to znači 28 komada (ne 28000)
-- Ako je količina napisana kao "1,000" to znači 1 komad
-- Hrvatski format koristi zarez za decimale, a točku za tisuće
+PRAVILA ZA KOLIČINU:
+- "28,000" = 28 komada (NE 28000)
+- "1,000" = 1 komad
+- Hrvatski format: zarez za decimale, točka za tisuće
 
-VAŽNO za cijenu:
-- Uzmi "Cijena s PDV-om" ili "Jedinična cijena s PDV" ili zadnji stupac s cijenom
-- Ne množiti s količinom, uzmi samo jediničnu cijenu
+PRAVILA ZA CIJENU:
+- Uzmi stupac "Cijena (s PDV-om)" ili "Cijena s PDV" ili zadnji stupac cijene
+- Samo jedinična cijena, NE ukupni iznos
 
-Vrati JSON u sljedećem formatu:
+VRATI JSON:
 {
-  "pkv_broj": "string (npr. 'PKV 8' ili 'Primka PKV 8')",
-  "dobavljac": "string (naziv dobavljača, ne vlasnika dokumenta)",
-  "items": [
-    {
-      "naziv": "string",
-      "kolicina": number,
-      "cijena": number
-    }
-  ]
-}
-
-Ako ne možeš pronaći neki podatak, ostavi prazno ili 0.`
+  "pkv_broj": "npr. PKV 8",
+  "dobavljac": "npr. LAMMACOST D.O.O. (iz tablice Dobavljač, NE s vrha dokumenta)",
+  "items": [{"naziv": "string", "kolicina": number, "cijena": number}]
+}`
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: 'Parsiraj ovaj račun i izvuci podatke:'
+                text: 'Parsiraj ovaj račun. VAŽNO: Dobavljač je u tablici "Dobavljač", NE na vrhu dokumenta!'
               },
               {
                 type: 'image_url',
@@ -124,6 +124,10 @@ Ako ne možeš pronaći neki podatak, ostavi prazno ili 0.`
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         parsedData = JSON.parse(jsonMatch[0]);
+        
+        console.log('Parsed data:', JSON.stringify(parsedData, null, 2));
+        console.log('PKV broj:', parsedData.pkv_broj);
+        console.log('Dobavljač:', parsedData.dobavljac);
         
         // Transform item names from ALL CAPS to Title Case
         if (parsedData.items && Array.isArray(parsedData.items)) {
