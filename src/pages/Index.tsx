@@ -21,8 +21,11 @@ import {
   Download,
   History,
   FileInput,
+  Upload,
+  Save,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useRef } from 'react';
 
 const Index = () => {
   const {
@@ -41,9 +44,12 @@ const Index = () => {
     getTodaySales,
     getTodayIncoming,
     exportToCSV,
+    exportToJSON,
+    importFromJSON,
   } = useInventory();
 
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<ClothingItem | null>(null);
   const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
@@ -128,6 +134,44 @@ const Index = () => {
     });
   };
 
+  const handleExportJSON = () => {
+    exportToJSON();
+    toast({
+      title: 'Backup spremljen',
+      description: 'JSON datoteka s kompletnim podacima je preuzeta.',
+    });
+  };
+
+  const handleImportJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      const result = importFromJSON(content);
+      
+      if (result.success) {
+        toast({
+          title: 'Uvoz uspješan',
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: 'Greška pri uvozu',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleIncomingCalculation = (
     invoiceName: string,
     incomingItems: Array<{ id: string; name: string; category: string; price: number; quantity: number }>
@@ -207,6 +251,29 @@ const Index = () => {
               <Download className="h-4 w-4" />
               Izvezi CSV
             </Button>
+            <Button
+              variant="outline"
+              onClick={handleExportJSON}
+              className="gap-2"
+            >
+              <Save className="h-4 w-4" />
+              Backup
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Uvezi
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleImportJSON}
+              className="hidden"
+            />
             <Button
               variant="outline"
               onClick={() => setHistoryOpen(true)}
