@@ -176,32 +176,61 @@ const Index = () => {
 
   const handleImportSalesCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
+
+    console.log('File selected:', file.name, file.type, file.size);
 
     const reader = new FileReader();
+    
     reader.onload = (e) => {
-      const content = e.target?.result as string;
-      const result = importSalesFromCSV(content);
-      
-      if (result.success) {
-        let description = result.message;
-        if (result.notFound.length > 0) {
-          description += ` (${result.notFound.length} nije pronađeno)`;
+      try {
+        const content = e.target?.result as string;
+        console.log('File content loaded, length:', content?.length);
+        
+        const result = importSalesFromCSV(content);
+        console.log('Import result:', result);
+        
+        if (result.success) {
+          let description = result.message;
+          if (result.notFound.length > 0) {
+            description += ` (${result.notFound.length} nije pronađeno)`;
+          }
+          toast({
+            title: 'Uvoz prodaja uspješan',
+            description,
+          });
+        } else {
+          toast({
+            title: 'Greška pri uvozu',
+            description: result.message,
+            variant: 'destructive',
+          });
         }
-        toast({
-          title: 'Uvoz prodaja uspješan',
-          description,
-        });
-      } else {
+      } catch (error) {
+        console.error('Error processing CSV:', error);
         toast({
           title: 'Greška pri uvozu',
-          description: result.message,
+          description: 'Došlo je do greške pri obradi datoteke.',
           variant: 'destructive',
         });
       }
     };
+    
+    reader.onerror = (error) => {
+      console.error('FileReader error:', error);
+      toast({
+        title: 'Greška pri čitanju',
+        description: 'Nije moguće pročitati datoteku.',
+        variant: 'destructive',
+      });
+    };
+    
     reader.readAsText(file);
     
+    // Reset input so same file can be selected again
     if (csvSalesInputRef.current) {
       csvSalesInputRef.current.value = '';
     }
