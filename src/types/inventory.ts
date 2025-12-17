@@ -35,6 +35,8 @@ export interface SavedCalculation {
   totalValue: number;
   totalQuantity: number;
   createdAt: Date;
+  pdfBase64?: string;
+  pdfFileName?: string;
 }
 
 export type CategoryType = 'majice' | 'hlače' | 'haljine' | 'jakne' | 'obuća' | 'dodaci' | 'ostalo';
