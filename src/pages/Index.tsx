@@ -310,9 +310,10 @@ const Index = () => {
 
   const handleIncomingCalculation = (
     invoiceName: string,
-    incomingItems: Array<{ id: string; name: string; category: string; price: number; quantity: number }>
+    incomingItems: Array<{ id: string; name: string; category: string; price: number; quantity: number }>,
+    pdfData?: { base64: string; fileName: string }
   ) => {
-    addIncomingCalculation(invoiceName, incomingItems);
+    addIncomingCalculation(invoiceName, incomingItems, pdfData);
     toast({
       title: 'Kalkulacija spremljena',
       description: `${invoiceName} - dodano ${incomingItems.length} artikala.`,

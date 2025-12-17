@@ -201,7 +201,8 @@ export const useInventory = () => {
 
   const addIncomingCalculation = useCallback((
     invoiceName: string,
-    incomingItems: Array<{ id: string; name: string; category: string; price: number; quantity: number }>
+    incomingItems: Array<{ id: string; name: string; category: string; price: number; quantity: number }>,
+    pdfData?: { base64: string; fileName: string }
   ) => {
     // Save the calculation
     const newCalculation: SavedCalculation = {
@@ -217,6 +218,8 @@ export const useInventory = () => {
       totalValue: incomingItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
       totalQuantity: incomingItems.reduce((sum, item) => sum + item.quantity, 0),
       createdAt: new Date(),
+      pdfBase64: pdfData?.base64,
+      pdfFileName: pdfData?.fileName,
     };
     setSavedCalculations(prev => [newCalculation, ...prev]);
 

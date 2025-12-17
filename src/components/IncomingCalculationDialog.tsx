@@ -36,7 +36,7 @@ interface IncomingItem {
 interface IncomingCalculationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (invoiceName: string, items: IncomingItem[]) => void;
+  onSave: (invoiceName: string, items: IncomingItem[], pdfData?: { base64: string; fileName: string }) => void;
   savedCalculations: SavedCalculation[];
   categories: Category[];
 }
@@ -58,6 +58,7 @@ export const IncomingCalculationDialog = ({
   const [isParsingPdf, setIsParsingPdf] = useState(false);
   const [uploadedPdfUrl, setUploadedPdfUrl] = useState<string | null>(null);
   const [uploadedPdfName, setUploadedPdfName] = useState<string | null>(null);
+  const [uploadedPdfBase64, setUploadedPdfBase64] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -121,6 +122,9 @@ export const IncomingCalculationDialog = ({
       });
       reader.readAsDataURL(file);
       const pdfBase64 = await base64Promise;
+      
+      // Store base64 for saving with calculation
+      setUploadedPdfBase64(pdfBase64);
 
       // Call edge function to parse PDF
       const { data, error } = await supabase.functions.invoke('parse-invoice-pdf', {
@@ -202,7 +206,10 @@ export const IncomingCalculationDialog = ({
   const handleSave = () => {
     const validItems = items.filter(item => item.name.trim() && item.quantity > 0);
     if (invoiceName.trim() && validItems.length > 0) {
-      onSave(invoiceName.trim(), validItems);
+      const pdfData = uploadedPdfBase64 && uploadedPdfName 
+        ? { base64: uploadedPdfBase64, fileName: uploadedPdfName }
+        : undefined;
+      onSave(invoiceName.trim(), validItems, pdfData);
       handleReset();
     }
   };
@@ -216,6 +223,20 @@ export const IncomingCalculationDialog = ({
     }
     setUploadedPdfUrl(null);
     setUploadedPdfName(null);
+    setUploadedPdfBase64(null);
+  };
+
+  const handleViewSavedPdf = (pdfBase64: string, fileName: string) => {
+    // Convert base64 to blob and open
+    const byteCharacters = atob(pdfBase64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
   };
 
   const toggleExpanded = (id: string) => {
@@ -465,7 +486,24 @@ export const IncomingCalculationDialog = ({
                       className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors text-left"
                     >
                       <div className="flex-1">
-                        <h4 className="font-semibold text-foreground">{calc.name}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-foreground">{calc.name}</h4>
+                          {calc.pdfBase64 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewSavedPdf(calc.pdfBase64!, calc.pdfFileName || 'faktura.pdf');
+                              }}
+                              className="h-7 gap-1 text-xs"
+                            >
+                              <Eye className="h-3 w-3" />
+                              PDF
+                            </Button>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           {format(new Date(calc.createdAt), 'dd.MM.yyyy HH:mm', { locale: hr })}
                         </p>
