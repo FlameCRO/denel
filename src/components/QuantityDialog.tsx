@@ -40,7 +40,7 @@ export const QuantityDialog = ({
 
   const isSale = type === 'sale';
   const Icon = isSale ? TrendingDown : TrendingUp;
-  const maxQuantity = isSale ? item?.quantityOwned || 0 : 999;
+  const maxQuantity = 9999;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -81,7 +81,7 @@ export const QuantityDialog = ({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={!quantity || parseInt(quantity) < 1 || (isSale && parseInt(quantity) > maxQuantity)}
+            disabled={!quantity || parseInt(quantity) < 1}
             variant={isSale ? 'destructive' : 'default'}
             className={!isSale ? 'bg-success hover:bg-success/90' : ''}
           >

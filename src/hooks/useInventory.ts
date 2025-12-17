@@ -172,7 +172,7 @@ export const useInventory = () => {
           ? {
               ...item,
               quantitySold: item.quantitySold + quantity,
-              quantityOwned: Math.max(0, item.quantityOwned - quantity),
+              quantityOwned: item.quantityOwned - quantity,
               updatedAt: new Date(),
             }
           : item
