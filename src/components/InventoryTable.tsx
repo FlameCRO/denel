@@ -68,6 +68,7 @@ export const InventoryTable = ({
     });
 
   const getStockStatus = (quantity: number) => {
+    if (quantity < 0) return { label: 'Negativno', variant: 'destructive' as const };
     if (quantity <= 5) return { label: 'Kritično', variant: 'destructive' as const };
     if (quantity <= 15) return { label: 'Nisko', variant: 'warning' as const };
     return { label: 'U redu', variant: 'success' as const };
