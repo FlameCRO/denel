@@ -349,9 +349,9 @@ const Index = () => {
             <input
               ref={csvSalesInputRef}
               type="file"
-              accept=".csv"
+              accept=".csv,text/csv,text/plain,application/vnd.ms-excel,*/*"
               onChange={handleImportSalesCSV}
-              className="hidden"
+              style={{ display: 'none', position: 'absolute', left: '-9999px' }}
             />
             <Button
               variant="outline"
