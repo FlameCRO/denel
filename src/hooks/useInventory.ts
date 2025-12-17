@@ -578,15 +578,35 @@ export const useInventory = () => {
         if (!imeRaw) continue;
 
         // Parse price from "Cijena s PDV-om" column
-        // Handle various formats: "1,50", "1.50", "1,50 €", "1.50€", etc.
-        const priceStr = (cijenaRaw || '0')
-          .replace(/\s/g, '')  // Remove all whitespace
-          .replace('€', '')    // Remove euro sign
-          .replace(',', '.');  // Convert comma to dot
+        // Handle various formats: "1,50", "1.50", "1,50 €", "1.50€", "1 234,50 €", etc.
+        let priceStr = cijenaRaw || '0';
+        console.log(`  -> Original price string: "${priceStr}" (charCodes: ${[...priceStr].map(c => c.charCodeAt(0)).join(',')})`);
+        
+        // Remove all non-numeric characters except comma and dot
+        priceStr = priceStr.replace(/[^\d,.\-]/g, '');
+        console.log(`  -> After removing non-numeric: "${priceStr}"`);
+        
+        // If there's both dot and comma, determine which is decimal separator
+        // European format: 1.234,56 or 1234,56
+        // US format: 1,234.56 or 1234.56
+        if (priceStr.includes(',') && priceStr.includes('.')) {
+          // If comma comes after dot, comma is decimal (European: 1.234,56)
+          if (priceStr.lastIndexOf(',') > priceStr.lastIndexOf('.')) {
+            priceStr = priceStr.replace(/\./g, '').replace(',', '.');
+          } else {
+            // Dot is decimal (US: 1,234.56)
+            priceStr = priceStr.replace(/,/g, '');
+          }
+        } else if (priceStr.includes(',')) {
+          // Only comma - treat as decimal separator (European)
+          priceStr = priceStr.replace(',', '.');
+        }
+        
+        console.log(`  -> Final price string: "${priceStr}"`);
         const price = parseFloat(priceStr);
         const finalPrice = isNaN(price) ? 0 : price;
         
-        console.log(`  -> Price parsed: "${cijenaRaw}" -> "${priceStr}" -> ${finalPrice}`);
+        console.log(`  -> Parsed price: ${finalPrice}`);
 
         // Parse name from "Ime" field - remove price suffix if present
         const priceMatch = imeRaw.match(/\s+\d+(?:[.,]\d+)?\s*€?\s*$/);
@@ -628,7 +648,7 @@ export const useInventory = () => {
 
       return { 
         success: true, 
-        message: `Uspješno uvezeno/ažurirano ${importedCount} artikala.`,
+        message: `Uspješno uvezeno/ažurirano ${importedCount} artikala. (Stupci: Ime[${imeIndex}]="${header[imeIndex]}", Cijena[${cijenaIndex}]="${header[cijenaIndex]}")`,
         imported: importedCount
       };
     } catch (error) {
