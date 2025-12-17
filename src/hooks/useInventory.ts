@@ -510,16 +510,26 @@ export const useInventory = () => {
         return { success: false, message: 'CSV datoteka je prazna ili nema podataka.', imported: 0 };
       }
 
-      // Parse header to find column indices
+      // Parse header to find column indices - be very flexible with matching
       const header = lines[0].split(/[,;]/).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      console.log('CSV Header:', header);
+      
       const imeIndex = header.findIndex(h => h === 'ime' || h.includes('ime'));
-      const cijenaIndex = header.findIndex(h => h === 'cijena s pdv-om' || h === 'cijena s pdv' || h.includes('cijena s pdv'));
+      // More flexible matching for price column
+      const cijenaIndex = header.findIndex(h => 
+        h.includes('cijena s pdv') || 
+        h.includes('cijena') ||
+        h === 'price' ||
+        h.includes('pdv')
+      );
+
+      console.log('Ime index:', imeIndex, 'Cijena index:', cijenaIndex);
 
       if (imeIndex === -1) {
-        return { success: false, message: 'Nije pronađen stupac "Ime" u CSV datoteci.', imported: 0 };
+        return { success: false, message: `Nije pronađen stupac "Ime" u CSV datoteci. Pronađeni stupci: ${header.join(', ')}`, imported: 0 };
       }
       if (cijenaIndex === -1) {
-        return { success: false, message: 'Nije pronađen stupac "Cijena s PDV-om" u CSV datoteci.', imported: 0 };
+        return { success: false, message: `Nije pronađen stupac s cijenom u CSV datoteci. Pronađeni stupci: ${header.join(', ')}`, imported: 0 };
       }
 
       let importedCount = 0;
@@ -532,11 +542,13 @@ export const useInventory = () => {
         const imeRaw = row[imeIndex];
         const cijenaRaw = row[cijenaIndex];
 
-        if (!imeRaw || !cijenaRaw) continue;
+        console.log(`Row ${i}: Ime="${imeRaw}", Cijena="${cijenaRaw}"`);
 
-        // Parse price from "cijena" column
-        const price = parseFloat(cijenaRaw.replace(',', '.').replace(/[€\s]/g, ''));
-        if (isNaN(price) || price <= 0) continue;
+        if (!imeRaw) continue;
+
+        // Parse price from "cijena" column - allow 0 price
+        const price = parseFloat((cijenaRaw || '0').replace(',', '.').replace(/[€\s]/g, ''));
+        const finalPrice = isNaN(price) ? 0 : price;
 
         // Parse name from "Ime" field - remove price suffix if present (e.g., "Bokserice 1.5€" → "Bokserice")
         const priceMatch = imeRaw.match(/\s+\d+(?:[.,]\d+)?\s*€?\s*$/);
@@ -551,14 +563,14 @@ export const useInventory = () => {
 
         if (existingItem) {
           // Update price if item exists
-          updateItem(existingItem.id, { price });
+          updateItem(existingItem.id, { price: finalPrice });
         } else {
           // Add new item
           const newItem: ClothingItem = {
             id: generateId(),
             name: productName,
             category: 'ostalo',
-            price,
+            price: finalPrice,
             quantityOwned: 0,
             quantitySold: 0,
             quantityIncoming: 0,
@@ -566,7 +578,7 @@ export const useInventory = () => {
             updatedAt: new Date(),
           };
           setItems(prev => [...prev, newItem]);
-          addTransaction(newItem.id, newItem.name, 'add', 0, `Uvezeno iz CSV - Cijena: ${price}€`);
+          addTransaction(newItem.id, newItem.name, 'add', 0, `Uvezeno iz CSV - Cijena: ${finalPrice}€`);
         }
         importedCount++;
       }
