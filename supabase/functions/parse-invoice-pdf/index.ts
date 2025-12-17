@@ -60,12 +60,15 @@ Izvuci ove podatke iz dokumenta:
 
 PRAVILA ZA KOLIČINU:
 - "28,000" = 28 komada (NE 28000)
+- "10,000" = 10 komada
 - "1,000" = 1 komad
 - Hrvatski format: zarez za decimale, točka za tisuće
 
-PRAVILA ZA CIJENU:
-- Uzmi stupac "Cijena (s PDV-om)" ili "Cijena s PDV" ili zadnji stupac cijene
-- Samo jedinična cijena, NE ukupni iznos
+PRAVILA ZA CIJENU - KRITIČNO!:
+- Traži ZADNJI stupac tablice koji se zove "Cijena (s PDV-om)" - to je JEDINIČNA cijena!
+- NE uzimaj stupac "Iznos" ili "Iznos s PDV" - to je UKUPAN iznos (cijena × količina)!
+- Primjer iz tablice: ako redak ima Količina=10 i zadnji stupac "Cijena (s PDV-om)"=5,00 → cijena je 5 (NE 50!)
+- Ako vidiš cijenu 50, 60, 100 za kapu, to je POGREŠNO - prave cijene su 5, 6, 10
 
 VRATI JSON:
 {
