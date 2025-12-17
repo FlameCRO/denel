@@ -495,11 +495,12 @@ export const useInventory = () => {
   const resetAllSales = useCallback(() => {
     setItems(prev => prev.map(item => ({
       ...item,
+      quantityOwned: item.quantityOwned + item.quantitySold, // Vrati prodano na stanje
       quantitySold: 0,
       updatedAt: new Date(),
     })));
     // Add a transaction for the reset
-    addTransaction('all', 'Svi artikli', 'sale', 0, 'Reset prodaje - sve svedeno na 0');
+    addTransaction('all', 'Svi artikli', 'sale', 0, 'Reset prodaje - sve svedeno na 0, stanje vraćeno');
   }, [addTransaction]);
 
   return {
