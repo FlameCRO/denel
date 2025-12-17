@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,9 +19,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SavedCalculation } from '@/types/inventory';
 import { Category } from '@/hooks/useCategories';
-import { Plus, Trash2, FileInput, History, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, FileInput, History, FileText, ChevronDown, ChevronUp, Upload, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { hr } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface IncomingItem {
   id: string;
@@ -53,6 +55,117 @@ export const IncomingCalculationDialog = ({
     { id: generateId(), name: '', category: 'majice', price: 0, quantity: 1 },
   ]);
   const [expandedCalculations, setExpandedCalculations] = useState<Set<string>>(new Set());
+  const [isParsingPdf, setIsParsingPdf] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  // Helper function to guess category from item name
+  const guessCategory = (itemName: string): string => {
+    const name = itemName.toLowerCase();
+    
+    // Try to match category keywords
+    for (const cat of categories) {
+      const label = cat.label.toLowerCase();
+      const value = cat.value.toLowerCase();
+      if (name.includes(label) || name.includes(value)) {
+        return cat.value;
+      }
+    }
+    
+    // Common mappings
+    if (name.includes('majic') || name.includes('t-shirt')) return 'majice';
+    if (name.includes('hlač') || name.includes('pant')) return 'hlace';
+    if (name.includes('jakn') || name.includes('jacket')) return 'jakne';
+    if (name.includes('haljin') || name.includes('dress')) return 'haljine';
+    if (name.includes('sukn') || name.includes('skirt')) return 'suknje';
+    if (name.includes('košulj') || name.includes('shirt')) return 'kosulje';
+    if (name.includes('džemper') || name.includes('pulover') || name.includes('sweater')) return 'dzemperi';
+    if (name.includes('kaput') || name.includes('coat')) return 'kaputi';
+    
+    return categories[0]?.value || 'majice';
+  };
+
+  const handlePdfImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast({
+        title: 'Pogrešan format',
+        description: 'Molimo odaberite PDF datoteku.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsParsingPdf(true);
+
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove the data URL prefix to get just the base64
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+      });
+      reader.readAsDataURL(file);
+      const pdfBase64 = await base64Promise;
+
+      // Call edge function to parse PDF
+      const { data, error } = await supabase.functions.invoke('parse-invoice-pdf', {
+        body: { pdfBase64 },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Greška pri parsiranju PDF-a');
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Fill the form with parsed data
+      const pkv = data.pkv_broj || '';
+      const dobavljac = data.dobavljac || '';
+      const calculationName = [pkv, dobavljac].filter(Boolean).join(' - ') || file.name;
+      
+      setInvoiceName(calculationName);
+
+      if (data.items && data.items.length > 0) {
+        const parsedItems: IncomingItem[] = data.items.map((item: { naziv: string; kolicina: number; cijena: number }) => ({
+          id: generateId(),
+          name: item.naziv || '',
+          category: guessCategory(item.naziv || ''),
+          price: item.cijena || 0,
+          quantity: Math.round(item.kolicina) || 1,
+        }));
+        setItems(parsedItems);
+      }
+
+      toast({
+        title: 'PDF uspješno parsiran',
+        description: `Učitano ${data.items?.length || 0} artikala. Pregledajte i spremite.`,
+      });
+
+    } catch (error) {
+      console.error('PDF parse error:', error);
+      toast({
+        title: 'Greška pri parsiranju',
+        description: error instanceof Error ? error.message : 'Nepoznata greška',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsParsingPdf(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleAddRow = () => {
     setItems([
@@ -128,6 +241,40 @@ export const IncomingCalculationDialog = ({
           </TabsList>
 
           <TabsContent value="new" className="space-y-6 py-4">
+            {/* PDF Import */}
+            <div className="flex items-center gap-4 p-4 border border-dashed rounded-lg bg-muted/30">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                onChange={handlePdfImport}
+                className="hidden"
+                id="pdf-import"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isParsingPdf}
+                className="gap-2"
+              >
+                {isParsingPdf ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Parsiranje...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4" />
+                    Uvezi iz PDF-a
+                  </>
+                )}
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Automatski učitaj podatke iz računa/fakture
+              </span>
+            </div>
+
             {/* Invoice Name */}
             <div className="space-y-2">
               <Label htmlFor="invoiceName" className="text-base font-medium">
