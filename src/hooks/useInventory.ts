@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ClothingItem } from '@/types/inventory';
+import { ClothingItem, InventoryTransaction } from '@/types/inventory';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -63,6 +63,26 @@ const initialItems: ClothingItem[] = [
 
 export const useInventory = () => {
   const [items, setItems] = useState<ClothingItem[]>(initialItems);
+  const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
+
+  const addTransaction = useCallback((
+    itemId: string,
+    itemName: string,
+    type: InventoryTransaction['type'],
+    quantity: number,
+    details?: string
+  ) => {
+    const newTransaction: InventoryTransaction = {
+      id: generateId(),
+      itemId,
+      itemName,
+      type,
+      quantity,
+      timestamp: new Date(),
+      details,
+    };
+    setTransactions(prev => [newTransaction, ...prev]);
+  }, []);
 
   const addItem = useCallback((item: Omit<ClothingItem, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newItem: ClothingItem = {
@@ -72,26 +92,41 @@ export const useInventory = () => {
       updatedAt: new Date(),
     };
     setItems(prev => [...prev, newItem]);
+    addTransaction(newItem.id, newItem.name, 'add', item.quantityOwned, `Cijena: ${item.price}€`);
     return newItem;
-  }, []);
+  }, [addTransaction]);
 
   const updateItem = useCallback((id: string, updates: Partial<Omit<ClothingItem, 'id' | 'createdAt'>>) => {
-    setItems(prev =>
-      prev.map(item =>
+    setItems(prev => {
+      const item = prev.find(i => i.id === id);
+      if (item) {
+        addTransaction(id, item.name, 'edit', 0, 'Artikl ažuriran');
+      }
+      return prev.map(item =>
         item.id === id
           ? { ...item, ...updates, updatedAt: new Date() }
           : item
-      )
-    );
-  }, []);
+      );
+    });
+  }, [addTransaction]);
 
   const deleteItem = useCallback((id: string) => {
-    setItems(prev => prev.filter(item => item.id !== id));
-  }, []);
+    setItems(prev => {
+      const item = prev.find(i => i.id === id);
+      if (item) {
+        addTransaction(id, item.name, 'delete', item.quantityOwned, 'Artikl obrisan');
+      }
+      return prev.filter(item => item.id !== id);
+    });
+  }, [addTransaction]);
 
   const recordSale = useCallback((id: string, quantity: number) => {
-    setItems(prev =>
-      prev.map(item =>
+    setItems(prev => {
+      const item = prev.find(i => i.id === id);
+      if (item) {
+        addTransaction(id, item.name, 'sale', quantity, `Prodano ${quantity} kom`);
+      }
+      return prev.map(item =>
         item.id === id
           ? {
               ...item,
@@ -100,13 +135,17 @@ export const useInventory = () => {
               updatedAt: new Date(),
             }
           : item
-      )
-    );
-  }, []);
+      );
+    });
+  }, [addTransaction]);
 
   const recordIncoming = useCallback((id: string, quantity: number) => {
-    setItems(prev =>
-      prev.map(item =>
+    setItems(prev => {
+      const item = prev.find(i => i.id === id);
+      if (item) {
+        addTransaction(id, item.name, 'incoming', quantity, `Zaprimljeno ${quantity} kom`);
+      }
+      return prev.map(item =>
         item.id === id
           ? {
               ...item,
@@ -115,9 +154,9 @@ export const useInventory = () => {
               updatedAt: new Date(),
             }
           : item
-      )
-    );
-  }, []);
+      );
+    });
+  }, [addTransaction]);
 
   const getRemaining = (item: ClothingItem) => {
     return item.quantityOwned;
@@ -135,8 +174,55 @@ export const useInventory = () => {
     return items.filter(item => item.quantityOwned <= threshold);
   };
 
+  const getTodayTransactions = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return transactions.filter(t => {
+      const transDate = new Date(t.timestamp);
+      transDate.setHours(0, 0, 0, 0);
+      return transDate.getTime() === today.getTime();
+    });
+  };
+
+  const getTodaySales = () => {
+    return getTodayTransactions()
+      .filter(t => t.type === 'sale')
+      .reduce((sum, t) => sum + t.quantity, 0);
+  };
+
+  const getTodayIncoming = () => {
+    return getTodayTransactions()
+      .filter(t => t.type === 'incoming')
+      .reduce((sum, t) => sum + t.quantity, 0);
+  };
+
+  const exportToCSV = () => {
+    const headers = ['Naziv', 'Kategorija', 'Cijena (€)', 'Na stanju', 'Prodano', 'U dolasku', 'Vrijednost'];
+    const rows = items.map(item => [
+      item.name,
+      item.category,
+      item.price.toFixed(2),
+      item.quantityOwned.toString(),
+      item.quantitySold.toString(),
+      item.quantityIncoming.toString(),
+      (item.price * item.quantityOwned).toFixed(2),
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `inventura_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
   return {
     items,
+    transactions,
     addItem,
     updateItem,
     deleteItem,
@@ -146,5 +232,9 @@ export const useInventory = () => {
     getTotalValue,
     getTotalSalesValue,
     getLowStockItems,
+    getTodayTransactions,
+    getTodaySales,
+    getTodayIncoming,
+    exportToCSV,
   };
 };

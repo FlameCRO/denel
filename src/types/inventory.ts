@@ -13,9 +13,11 @@ export interface ClothingItem {
 export interface InventoryTransaction {
   id: string;
   itemId: string;
-  type: 'sale' | 'restock' | 'adjustment';
+  itemName: string;
+  type: 'sale' | 'incoming' | 'add' | 'edit' | 'delete';
   quantity: number;
   timestamp: Date;
+  details?: string;
 }
 
 export type CategoryType = 'majice' | 'hlače' | 'haljine' | 'jakne' | 'obuća' | 'dodaci' | 'ostalo';
