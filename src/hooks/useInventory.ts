@@ -443,25 +443,43 @@ export const useInventory = () => {
 
         // Parse product name and price from "proizvod" field (e.g., "hlače 7€" or "hlače 7")
         const priceMatch = proizvodRaw.match(/(\d+(?:[.,]\d+)?)\s*€?$/);
-        let productName = proizvodRaw;
-        let productPrice: number | null = null;
+        let csvProductName = proizvodRaw;
+        let csvProductPrice: number | null = null;
 
         if (priceMatch) {
-          productPrice = parseFloat(priceMatch[1].replace(',', '.'));
-          productName = proizvodRaw.replace(priceMatch[0], '').trim();
+          csvProductPrice = parseFloat(priceMatch[1].replace(',', '.'));
+          csvProductName = proizvodRaw.replace(priceMatch[0], '').trim();
         }
 
-        // Find matching item by name (case-insensitive) and price
+        // Helper function to normalize item name (remove price suffix)
+        const normalizeName = (name: string): string => {
+          return name
+            .replace(/\s*\d+(?:[.,]\d+)?\s*€?\s*$/, '') // Remove price at end
+            .trim()
+            .toLowerCase();
+        };
+
+        const normalizedCsvName = normalizeName(csvProductName);
+
+        // Find matching item by normalized name (without price) and optionally by price
         const matchingItem = items.find(item => {
-          const nameMatch = item.name.toLowerCase().includes(productName.toLowerCase()) || 
-                           productName.toLowerCase().includes(item.name.toLowerCase());
+          const normalizedItemName = normalizeName(item.name);
           
-          if (productPrice !== null) {
-            // Match by name AND price
-            return nameMatch && Math.abs(item.price - productPrice) < 0.01;
+          // Exact match on normalized names
+          const exactMatch = normalizedItemName === normalizedCsvName;
+          
+          // Partial match - one contains the other
+          const partialMatch = normalizedItemName.includes(normalizedCsvName) || 
+                              normalizedCsvName.includes(normalizedItemName);
+          
+          // If CSV has a price, also verify the item price matches
+          if (csvProductPrice !== null) {
+            return (exactMatch || partialMatch) && Math.abs(item.price - csvProductPrice) < 0.01;
           }
-          // Match by name only if no price extracted
-          return nameMatch;
+          
+          // If no price in CSV, try to match by name and item's actual price
+          // This helps match "Bokserice" from CSV to "Bokserice 1.5€" in inventory
+          return exactMatch || partialMatch;
         });
 
         if (matchingItem) {
