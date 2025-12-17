@@ -97,6 +97,19 @@ Ako ne možeš pronaći neki podatak, ostavi prazno ili 0.`
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
 
+    // Helper function to convert ALL CAPS to Title Case
+    const toTitleCase = (str: string): string => {
+      if (!str) return str;
+      // Check if string is mostly uppercase (more than 80% uppercase letters)
+      const letters = str.replace(/[^a-zA-ZčćžšđČĆŽŠĐ]/g, '');
+      const uppercaseCount = (str.match(/[A-ZČĆŽŠĐ]/g) || []).length;
+      if (letters.length > 0 && uppercaseCount / letters.length > 0.8) {
+        // Convert to title case: first letter uppercase, rest lowercase
+        return str.toLowerCase().replace(/^[a-zčćžšđ]/, (char) => char.toUpperCase());
+      }
+      return str;
+    };
+
     // Extract JSON from the response
     let parsedData;
     try {
@@ -104,6 +117,14 @@ Ako ne možeš pronaći neki podatak, ostavi prazno ili 0.`
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         parsedData = JSON.parse(jsonMatch[0]);
+        
+        // Transform item names from ALL CAPS to Title Case
+        if (parsedData.items && Array.isArray(parsedData.items)) {
+          parsedData.items = parsedData.items.map((item: any) => ({
+            ...item,
+            naziv: toTitleCase(item.naziv)
+          }));
+        }
       } else {
         throw new Error('No JSON found in response');
       }
