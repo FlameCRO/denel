@@ -45,12 +45,19 @@ export const InventoryTable = ({
 }: InventoryTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'default' | 'az' | 'za'>('default');
 
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredItems = items
+    .filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      if (sortOrder === 'az') return a.name.localeCompare(b.name, 'hr');
+      if (sortOrder === 'za') return b.name.localeCompare(a.name, 'hr');
+      return 0;
+    });
 
   const getStockStatus = (quantity: number) => {
     if (quantity <= 5) return { label: 'Kritično', variant: 'destructive' as const };
@@ -91,6 +98,15 @@ export const InventoryTable = ({
           {CATEGORIES.map(cat => (
             <option key={cat.value} value={cat.value}>{cat.label}</option>
           ))}
+        </select>
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as 'default' | 'az' | 'za')}
+          className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="default">Zadani poredak</option>
+          <option value="az">A - Ž</option>
+          <option value="za">Ž - A</option>
         </select>
       </div>
 
