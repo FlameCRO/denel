@@ -38,6 +38,7 @@ import {
   Save,
   RotateCcw,
   Trash2,
+  Tags,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -66,6 +67,7 @@ const Index = () => {
     importInventoryFromCSV,
     resetAllSales,
     deleteAllItems,
+    categorizeAllItems,
   } = useInventory();
 
   const { toast } = useToast();
@@ -372,6 +374,16 @@ const Index = () => {
     updateIncomingCalculation(calculationId, invoiceName, incomingItems, pdfData);
   };
 
+  const handleCategorizeAll = () => {
+    const count = categorizeAllItems(categories, addCategory);
+    toast({
+      title: 'Kategorizacija završena',
+      description: count > 0 
+        ? `Kategorizirano ${count} artikala.` 
+        : 'Svi artikli su već pravilno kategorizirani.',
+    });
+  };
+
   const totalItems = items.reduce((sum, item) => sum + item.quantityOwned, 0);
   const totalSold = items.reduce((sum, item) => sum + item.quantitySold, 0);
   const lowStockCount = getLowStockItems().length;
@@ -541,6 +553,14 @@ const Index = () => {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+            <Button
+              variant="outline"
+              onClick={handleCategorizeAll}
+              className="gap-2"
+            >
+              <Tags className="h-4 w-4" />
+              Kategoriziraj
+            </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
