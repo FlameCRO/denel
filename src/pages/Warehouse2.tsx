@@ -1,15 +1,15 @@
 import { Header } from '@/components/Header';
 import { WarehousePage } from '@/components/WarehousePage';
 
-const Index = () => {
+const Warehouse2 = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-6 py-8">
-        <WarehousePage warehouseId="warehouse1" warehouseName="Skladište 1 - Inventura" />
+        <WarehousePage warehouseId="warehouse2" warehouseName="Skladište 2 - Inventura" />
       </main>
     </div>
   );
 };
 
-export default Index;
+export default Warehouse2;
