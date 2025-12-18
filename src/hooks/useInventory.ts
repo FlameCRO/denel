@@ -941,47 +941,73 @@ export const useInventory = () => {
     }
 
     let categorizedCount = 0;
+    let mergedCount = 0;
     
-    setItems(prev => prev.map(item => {
-      const itemNameLower = item.name.toLowerCase();
-      let newCategory = item.category;
+    setItems(prev => {
+      // First, categorize all items
+      const categorizedItems = prev.map(item => {
+        const itemNameLower = item.name.toLowerCase();
+        let newCategory = item.category;
 
-      // Special rules first
-      if (itemNameLower.includes('prsluk')) {
-        newCategory = 'jakne';
-      } else if (itemNameLower.includes('duge gaće') || itemNameLower.includes('duge gace')) {
-        newCategory = 'bokserice-gaće';
-      } else {
-        // Try to match with existing categories by checking if item name starts with category label
-        let matched = false;
-        for (const cat of categories) {
-          const catLabelLower = cat.label.toLowerCase();
-          // Check if item name contains the category root (singular form)
-          const singularForm = catLabelLower.replace(/e$/, 'a').replace(/i$/, 'a'); // majice->majica, hlače->hlača
-          const rootForm = catLabelLower.slice(0, -1); // Remove last letter for root matching
+        // Special rules first
+        if (itemNameLower.includes('prsluk')) {
+          newCategory = 'jakne';
+        } else if (itemNameLower.includes('duge gaće') || itemNameLower.includes('duge gace') || itemNameLower.includes('bokserice')) {
+          newCategory = 'bokserice-gaće';
+        } else {
+          // Try to match with existing categories by checking if item name contains category label
+          let matched = false;
+          for (const cat of categories) {
+            const catLabelLower = cat.label.toLowerCase();
+            // Check if item name contains the category root (singular form)
+            const singularForm = catLabelLower.replace(/e$/, 'a').replace(/i$/, 'a'); // majice->majica, hlače->hlača
+            const rootForm = catLabelLower.slice(0, -1); // Remove last letter for root matching
+            
+            if (itemNameLower.includes(catLabelLower) || 
+                itemNameLower.includes(singularForm) ||
+                itemNameLower.startsWith(rootForm)) {
+              newCategory = cat.value;
+              matched = true;
+              break;
+            }
+          }
           
-          if (itemNameLower.includes(catLabelLower) || 
-              itemNameLower.includes(singularForm) ||
-              itemNameLower.startsWith(rootForm)) {
-            newCategory = cat.value;
-            matched = true;
-            break;
+          if (!matched) {
+            newCategory = 'ostalo';
           }
         }
+
+        if (newCategory !== item.category) {
+          categorizedCount++;
+          return { ...item, category: newCategory, updatedAt: new Date() };
+        }
+        return item;
+      });
+
+      // Then, merge items with the same name and price
+      const mergedItemsMap = new Map<string, ClothingItem>();
+      
+      for (const item of categorizedItems) {
+        const key = `${item.name.toLowerCase()}_${item.price}`;
         
-        if (!matched) {
-          newCategory = 'ostalo';
+        if (mergedItemsMap.has(key)) {
+          const existing = mergedItemsMap.get(key)!;
+          mergedItemsMap.set(key, {
+            ...existing,
+            quantityOwned: existing.quantityOwned + item.quantityOwned,
+            quantitySold: existing.quantitySold + item.quantitySold,
+            updatedAt: new Date(),
+          });
+          mergedCount++;
+        } else {
+          mergedItemsMap.set(key, item);
         }
       }
 
-      if (newCategory !== item.category) {
-        categorizedCount++;
-        return { ...item, category: newCategory, updatedAt: new Date() };
-      }
-      return item;
-    }));
+      return Array.from(mergedItemsMap.values());
+    });
 
-    return categorizedCount;
+    return { categorizedCount, mergedCount };
   }, []);
 
   return {

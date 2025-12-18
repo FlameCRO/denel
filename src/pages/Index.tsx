@@ -375,12 +375,16 @@ const Index = () => {
   };
 
   const handleCategorizeAll = () => {
-    const count = categorizeAllItems(categories, addCategory);
+    const { categorizedCount, mergedCount } = categorizeAllItems(categories, addCategory);
+    const messages: string[] = [];
+    if (categorizedCount > 0) messages.push(`Kategorizirano ${categorizedCount} artikala`);
+    if (mergedCount > 0) messages.push(`Spojeno ${mergedCount} duplikata`);
+    
     toast({
-      title: 'Kategorizacija završena',
-      description: count > 0 
-        ? `Kategorizirano ${count} artikala.` 
-        : 'Svi artikli su već pravilno kategorizirani.',
+      title: 'Kategorizacija i spajanje završeno',
+      description: messages.length > 0 
+        ? messages.join('. ') + '.'
+        : 'Svi artikli su već pravilno kategorizirani i nema duplikata.',
     });
   };
 
@@ -559,7 +563,7 @@ const Index = () => {
               className="gap-2"
             >
               <Tags className="h-4 w-4" />
-              Kategoriziraj
+              Kategoriziraj - spoji
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
