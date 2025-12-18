@@ -15,11 +15,13 @@ const DEFAULT_CATEGORIES: Category[] = [
   { value: 'ostalo', label: 'Ostalo' },
 ];
 
-const STORAGE_KEY = 'inventory-categories';
+const getStorageKey = (warehouseId: string) => `inventory-categories_${warehouseId}`;
 
-export const useCategories = () => {
+export const useCategories = (warehouseId: string = 'warehouse1') => {
+  const storageKey = getStorageKey(warehouseId);
+  
   const [categories, setCategories] = useState<Category[]>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(storageKey);
     if (stored) {
       try {
         return JSON.parse(stored);
@@ -31,8 +33,8 @@ export const useCategories = () => {
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));
-  }, [categories]);
+    localStorage.setItem(storageKey, JSON.stringify(categories));
+  }, [categories, storageKey]);
 
   const addCategory = useCallback((label: string) => {
     const value = label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-zčćžšđ0-9-]/gi, '');
