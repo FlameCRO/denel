@@ -39,7 +39,14 @@ import {
   Trash2,
   Tags,
   Calculator,
+  Info,
 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useToast } from '@/hooks/use-toast';
 
 interface WarehousePageProps {
@@ -445,30 +452,65 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
             <FileText className="h-4 w-4" />
             Dnevni izvještaj
           </Button>
-          <Button
-            variant="outline"
-            onClick={handleExportCSV}
-            className="gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Izvezi CSV
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleExportJSON}
-            className="gap-2"
-          >
-            <Save className="h-4 w-4" />
-            Backup
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            className="gap-2"
-          >
-            <Upload className="h-4 w-4" />
-            Uvezi
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={handleExportCSV}
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Izvezi CSV
+                  <Info className="h-3 w-3 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Izvoz u CSV format</p>
+                <p className="text-xs">Stupci: Naziv, Kategorija, Cijena, Na stanju, Prodano, U dolasku</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={handleExportJSON}
+                  className="gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  Backup
+                  <Info className="h-3 w-3 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Backup u JSON format</p>
+                <p className="text-xs">Sprema kompletne podatke svih artikala uključujući sve količine i kategorije.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Uvezi
+                  <Info className="h-3 w-3 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Uvoz iz JSON backupa</p>
+                <p className="text-xs">Učitava prethodno spremljeni backup. Zamjenjuje sve trenutne podatke!</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <input
             ref={fileInputRef}
             type="file"
@@ -476,14 +518,27 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
             onChange={handleImportJSON}
             className="hidden"
           />
-          <Button
-            variant="outline"
-            onClick={() => csvSalesInputRef.current?.click()}
-            className="gap-2"
-          >
-            <FileInput className="h-4 w-4" />
-            Uvezi prodaju (CSV)
-          </Button>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => csvSalesInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  <FileInput className="h-4 w-4" />
+                  Uvezi prodaju (CSV)
+                  <Info className="h-3 w-3 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Uvoz prodaje iz CSV-a</p>
+                <p className="text-xs">Očekivani format: Naziv artikla, Količina prodano</p>
+                <p className="text-xs mt-1">Traži artikl po imenu i dodaje prodanu količinu.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <input
             ref={csvSalesInputRef}
             type="file"
@@ -491,14 +546,27 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
             onChange={handleImportSalesCSV}
             style={{ display: 'none', position: 'absolute', left: '-9999px' }}
           />
-          <Button
-            variant="outline"
-            onClick={() => csvItemsInputRef.current?.click()}
-            className="gap-2"
-          >
-            <FileInput className="h-4 w-4" />
-            Uvezi artikle (CSV)
-          </Button>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => csvItemsInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  <FileInput className="h-4 w-4" />
+                  Uvezi artikle (CSV)
+                  <Info className="h-3 w-3 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Uvoz novih artikala iz CSV-a</p>
+                <p className="text-xs">Očekivani format: Naziv, Kategorija, Cijena, Količina</p>
+                <p className="text-xs mt-1">Dodaje nove artikle u inventuru.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <input
             ref={csvItemsInputRef}
             type="file"
@@ -506,14 +574,27 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
             onChange={handleImportItemsCSV}
             style={{ display: 'none', position: 'absolute', left: '-9999px' }}
           />
-          <Button
-            variant="outline"
-            onClick={() => csvInventoryInputRef.current?.click()}
-            className="gap-2"
-          >
-            <FileInput className="h-4 w-4" />
-            Uvezi Inventuru
-          </Button>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => csvInventoryInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  <FileInput className="h-4 w-4" />
+                  Uvezi Inventuru
+                  <Info className="h-3 w-3 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Uvoz inventure iz CSV-a</p>
+                <p className="text-xs">Očekivani format: Naziv, Cijena, Količina na stanju</p>
+                <p className="text-xs mt-1">Ažurira količine postojećih artikala ili dodaje nove.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <input
             ref={csvInventoryInputRef}
             type="file"
