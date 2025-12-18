@@ -950,11 +950,25 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
         const itemNameLower = item.name.toLowerCase();
         let newCategory = item.category;
 
-        // Special rules first
+        // Special keyword rules first (highest priority)
         if (itemNameLower.includes('prsluk')) {
           newCategory = 'jakne';
         } else if (itemNameLower.includes('duge gaće') || itemNameLower.includes('duge gace') || itemNameLower.includes('bokserice')) {
           newCategory = 'bokserice-gaće';
+        } else if (itemNameLower.includes('čarapa') || itemNameLower.includes('čarape') || itemNameLower.includes('carapa') || itemNameLower.includes('carape')) {
+          newCategory = 'čarape';
+        } else if (itemNameLower.includes('majica') || itemNameLower.includes('majice') || itemNameLower.includes('t-shirt') || itemNameLower.includes('tshirt')) {
+          newCategory = 'majice';
+        } else if (itemNameLower.includes('hlače') || itemNameLower.includes('hlace') || itemNameLower.includes('pants') || itemNameLower.includes('trousers')) {
+          newCategory = 'hlače';
+        } else if (itemNameLower.includes('haljina') || itemNameLower.includes('haljine') || itemNameLower.includes('dress')) {
+          newCategory = 'haljine';
+        } else if (itemNameLower.includes('jakna') || itemNameLower.includes('jakne') || itemNameLower.includes('jacket') || itemNameLower.includes('coat')) {
+          newCategory = 'jakne';
+        } else if (itemNameLower.includes('suknja') || itemNameLower.includes('suknje') || itemNameLower.includes('skirt')) {
+          newCategory = 'suknje';
+        } else if (itemNameLower.includes('košulja') || itemNameLower.includes('kosulja') || itemNameLower.includes('košulje') || itemNameLower.includes('kosulje')) {
+          newCategory = 'košulje';
         } else {
           // Try to match with existing categories by checking if item name contains category label
           let matched = false;
