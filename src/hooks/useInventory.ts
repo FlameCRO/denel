@@ -933,6 +933,57 @@ export const useInventory = () => {
     addTransaction('all', 'Svi artikli', 'delete', count, 'Obrisani svi artikli');
   }, [items.length, addTransaction]);
 
+  const categorizeAllItems = useCallback((categories: { value: string; label: string }[], addCategory: (label: string) => { success: boolean; message: string }) => {
+    // Ensure "Bokserice-gaće" category exists
+    const boksericeExists = categories.some(c => c.value === 'bokserice-gaće' || c.label.toLowerCase() === 'bokserice-gaće');
+    if (!boksericeExists) {
+      addCategory('Bokserice-gaće');
+    }
+
+    let categorizedCount = 0;
+    
+    setItems(prev => prev.map(item => {
+      const itemNameLower = item.name.toLowerCase();
+      let newCategory = item.category;
+
+      // Special rules first
+      if (itemNameLower.includes('prsluk')) {
+        newCategory = 'jakne';
+      } else if (itemNameLower.includes('duge gaće') || itemNameLower.includes('duge gace')) {
+        newCategory = 'bokserice-gaće';
+      } else {
+        // Try to match with existing categories by checking if item name starts with category label
+        let matched = false;
+        for (const cat of categories) {
+          const catLabelLower = cat.label.toLowerCase();
+          // Check if item name contains the category root (singular form)
+          const singularForm = catLabelLower.replace(/e$/, 'a').replace(/i$/, 'a'); // majice->majica, hlače->hlača
+          const rootForm = catLabelLower.slice(0, -1); // Remove last letter for root matching
+          
+          if (itemNameLower.includes(catLabelLower) || 
+              itemNameLower.includes(singularForm) ||
+              itemNameLower.startsWith(rootForm)) {
+            newCategory = cat.value;
+            matched = true;
+            break;
+          }
+        }
+        
+        if (!matched) {
+          newCategory = 'ostalo';
+        }
+      }
+
+      if (newCategory !== item.category) {
+        categorizedCount++;
+        return { ...item, category: newCategory, updatedAt: new Date() };
+      }
+      return item;
+    }));
+
+    return categorizedCount;
+  }, []);
+
   return {
     items,
     transactions,
@@ -959,5 +1010,6 @@ export const useInventory = () => {
     importInventoryFromCSV,
     resetAllSales,
     deleteAllItems,
+    categorizeAllItems,
   };
 };
