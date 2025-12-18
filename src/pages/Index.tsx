@@ -39,6 +39,7 @@ import {
   RotateCcw,
   Trash2,
   Tags,
+  Calculator,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -391,6 +392,9 @@ const Index = () => {
   const totalItems = items.reduce((sum, item) => sum + item.quantityOwned, 0);
   const totalSold = items.reduce((sum, item) => sum + item.quantitySold, 0);
   const lowStockCount = getLowStockItems().length;
+  const totalCalculationsValue = savedCalculations.reduce((sum, calc) => {
+    return sum + calc.items.reduce((itemSum, item) => itemSum + (item.price * item.quantity), 0);
+  }, 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -398,7 +402,7 @@ const Index = () => {
 
       <main className="container mx-auto px-6 py-8 space-y-8">
         {/* Stats Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           <StatsCard
             title="Ukupno artikala"
             value={items.length}
@@ -412,6 +416,13 @@ const Index = () => {
             subtitle="Na trenutnom stanju"
             icon={Euro}
             variant="default"
+          />
+          <StatsCard
+            title="Vrijednost kalkulacija"
+            value={formatPrice(totalCalculationsValue)}
+            subtitle={`${savedCalculations.length} kalkulacija`}
+            icon={Calculator}
+            variant="primary"
           />
           <StatsCard
             title="Ukupna prodaja"
