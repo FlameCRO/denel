@@ -53,7 +53,7 @@ export const InventoryTable = ({
 }: InventoryTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [sortOrder, setSortOrder] = useState<'default' | 'az' | 'za'>('default');
+  const [sortOrder, setSortOrder] = useState<'default' | 'az' | 'za'>('az');
 
   const filteredItems = items
     .filter(item => {
