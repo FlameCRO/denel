@@ -7,6 +7,7 @@ import { DailyReportDialog } from '@/components/DailyReportDialog';
 import { TransactionHistoryDialog } from '@/components/TransactionHistoryDialog';
 import { IncomingCalculationDialog } from '@/components/IncomingCalculationDialog';
 import { CategoryManagementDialog } from '@/components/CategoryManagementDialog';
+import { ExchangeDialog, ExchangeData } from '@/components/ExchangeDialog';
 import { useInventory } from '@/hooks/useInventory';
 import { useCategories } from '@/hooks/useCategories';
 import { ClothingItem } from '@/types/inventory';
@@ -40,6 +41,7 @@ import {
   Tags,
   Calculator,
   Info,
+  ArrowRightLeft,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -64,6 +66,7 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
     deleteItem,
     recordSale,
     recordIncoming,
+    recordExchange,
     addIncomingCalculation,
     updateIncomingCalculation,
     importCalculations,
@@ -97,6 +100,7 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
   const [historyOpen, setHistoryOpen] = useState(false);
   const [incomingCalcOpen, setIncomingCalcOpen] = useState(false);
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
+  const [exchangeDialogOpen, setExchangeDialogOpen] = useState(false);
   
   const { categories, addCategory, renameCategory, deleteCategory, getCategoryLabel } = useCategories(warehouseId);
 
@@ -407,6 +411,14 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
       title: 'Rasprodani artikli uklonjeni',
       description: `Obrisano ${soldOutItems.length} artikala sa stanjem 0.`,
       variant: 'destructive',
+    });
+  };
+
+  const handleExchange = (exchanges: ExchangeData[]) => {
+    recordExchange(exchanges);
+    toast({
+      title: 'Razmjena izvršena',
+      description: `Ažurirano ${exchanges.length} artikala.`,
     });
   };
 
@@ -750,6 +762,14 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
           </AlertDialog>
           <Button
             variant="outline"
+            onClick={() => setExchangeDialogOpen(true)}
+            className="gap-2"
+          >
+            <ArrowRightLeft className="h-4 w-4" />
+            Razmjeni
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => setHistoryOpen(true)}
             className="gap-2"
           >
@@ -843,6 +863,13 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
         onAddCategory={addCategory}
         onRenameCategory={renameCategory}
         onDeleteCategory={deleteCategory}
+      />
+
+      <ExchangeDialog
+        open={exchangeDialogOpen}
+        onOpenChange={setExchangeDialogOpen}
+        items={items}
+        onExchange={handleExchange}
       />
     </div>
   );
