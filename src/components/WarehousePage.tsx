@@ -215,16 +215,20 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
     const file = event.target.files?.[0];
     if (!file) return;
 
+    console.log('[CSV Import] Starting import for file:', file.name);
     const reader = new FileReader();
     
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
+        console.log('[CSV Import] File content loaded, length:', content?.length);
+        
         const result = importSalesFromCSV(content);
+        console.log('[CSV Import] Import result:', result);
         
         if (result.success) {
           let description = result.message;
-          if (result.notFound.length > 0) {
+          if (result.notFound && result.notFound.length > 0) {
             description += `\n\nNepronađeni artikli (${result.notFound.length}):`;
             const itemsToShow = result.notFound.slice(0, 10);
             description += '\n' + itemsToShow.join('\n');
@@ -239,25 +243,27 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
                 {description}
               </pre>
             ),
-            duration: result.notFound.length > 0 ? 15000 : 5000,
+            duration: (result.notFound?.length || 0) > 0 ? 15000 : 5000,
           });
         } else {
           toast({
             title: 'Greška pri uvozu',
-            description: result.message,
+            description: result.message || 'Nepoznata greška',
             variant: 'destructive',
           });
         }
       } catch (error) {
+        console.error('[CSV Import] Error during import:', error);
         toast({
           title: 'Greška pri uvozu',
-          description: 'Došlo je do greške pri obradi datoteke.',
+          description: `Došlo je do greške: ${error instanceof Error ? error.message : 'Nepoznata greška'}`,
           variant: 'destructive',
         });
       }
     };
     
     reader.onerror = () => {
+      console.error('[CSV Import] FileReader error');
       toast({
         title: 'Greška pri čitanju',
         description: 'Nije moguće pročitati datoteku.',
