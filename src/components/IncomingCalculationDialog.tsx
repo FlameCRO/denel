@@ -341,25 +341,27 @@ export const IncomingCalculationDialog = ({
 
   // Check if item matches search criteria
   const itemMatchesSearch = (item: { name: string; price: number }): boolean => {
+    if (!item || !item.name) return false;
     const nameMatches = item.name.toLowerCase().includes(nameQuery);
     if (priceQuery !== null) {
       // Price must match exactly (comparing as integers to avoid float issues)
-      const priceMatches = Math.abs(item.price - priceQuery) < 0.01;
+      const priceMatches = Math.abs((item.price || 0) - priceQuery) < 0.01;
       return nameMatches && priceMatches;
     }
     return nameMatches;
   };
 
   // Filter calculations by search query
-  const filteredCalculations = savedCalculations.filter(calc => {
+  const filteredCalculations = (savedCalculations || []).filter(calc => {
+    if (!calc) return false;
     if (!searchQuery.trim()) return true;
-    if (calc.name.toLowerCase().includes(nameQuery) && priceQuery === null) return true;
-    return calc.items.some(item => itemMatchesSearch(item));
+    if (calc.name?.toLowerCase().includes(nameQuery) && priceQuery === null) return true;
+    return (calc.items || []).some(item => itemMatchesSearch(item));
   });
 
   // Find which items match the search
   const getMatchingItems = (calc: SavedCalculation) => {
-    if (!searchQuery.trim()) return [];
+    if (!searchQuery.trim() || !calc?.items) return [];
     return calc.items.filter(item => itemMatchesSearch(item));
   };
 
