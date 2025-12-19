@@ -66,6 +66,7 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
     recordIncoming,
     addIncomingCalculation,
     updateIncomingCalculation,
+    importCalculations,
     getTotalValue,
     getTotalSalesValue,
     getLowStockItems,
@@ -767,6 +768,7 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
         onOpenChange={setIncomingCalcOpen}
         onSave={handleIncomingCalculation}
         onUpdate={handleUpdateCalculation}
+        onImportCalculations={importCalculations}
         savedCalculations={savedCalculations}
         categories={categories}
       />

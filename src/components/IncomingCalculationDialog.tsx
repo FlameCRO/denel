@@ -38,6 +38,7 @@ interface IncomingCalculationDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (invoiceName: string, items: IncomingItem[], pdfData?: { base64: string; fileName: string }) => void;
   onUpdate?: (calculationId: string, invoiceName: string, items: IncomingItem[], pdfData?: { base64: string; fileName: string }) => void;
+  onImportCalculations?: (calculations: SavedCalculation[]) => void;
   savedCalculations: SavedCalculation[];
   categories: Category[];
 }
@@ -49,6 +50,7 @@ export const IncomingCalculationDialog = ({
   onOpenChange,
   onSave,
   onUpdate,
+  onImportCalculations,
   savedCalculations,
   categories,
 }: IncomingCalculationDialogProps) => {
@@ -65,6 +67,7 @@ export const IncomingCalculationDialog = ({
   const [activeTab, setActiveTab] = useState('new');
   const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   // Helper function to guess category from item name
@@ -316,6 +319,71 @@ export const IncomingCalculationDialog = ({
       title: 'Izvoz uspješan',
       description: `Izvezeno ${savedCalculations.length} kalkulacija${savedCalculations.filter(c => c.pdfBase64).length > 0 ? ' s PDF datotekama' : ''}.`,
     });
+  };
+
+  // Import calculations from JSON
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const data = JSON.parse(content);
+
+        if (!data.calculations || !Array.isArray(data.calculations)) {
+          throw new Error('Neispravan format datoteke');
+        }
+
+        const importedCalculations: SavedCalculation[] = data.calculations.map((calc: any) => ({
+          id: calc.id || generateId(),
+          name: calc.name || 'Bez naziva',
+          items: (calc.items || []).map((item: any) => ({
+            id: item.id || generateId(),
+            name: item.name || '',
+            category: item.category || 'ostalo',
+            price: item.price || 0,
+            quantity: item.quantity || 1,
+          })),
+          totalValue: calc.totalValue || 0,
+          totalQuantity: calc.totalQuantity || 0,
+          createdAt: new Date(calc.createdAt || new Date()),
+          pdfBase64: calc.pdfBase64 || undefined,
+          pdfFileName: calc.pdfFileName || undefined,
+        }));
+
+        if (onImportCalculations) {
+          onImportCalculations(importedCalculations);
+          toast({
+            title: 'Uvoz uspješan',
+            description: `Uvezeno ${importedCalculations.length} kalkulacija.`,
+          });
+        }
+      } catch (error) {
+        console.error('Import error:', error);
+        toast({
+          title: 'Greška pri uvozu',
+          description: error instanceof Error ? error.message : 'Neispravan format datoteke',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    reader.onerror = () => {
+      toast({
+        title: 'Greška pri čitanju',
+        description: 'Nije moguće pročitati datoteku',
+        variant: 'destructive',
+      });
+    };
+
+    reader.readAsText(file);
+    
+    // Reset input
+    if (importFileInputRef.current) {
+      importFileInputRef.current.value = '';
+    }
   };
 
   // Parse search query for name and optional price (e.g., "hlače 20" -> name: "hlače", price: 20)
@@ -604,6 +672,23 @@ export const IncomingCalculationDialog = ({
                   </Button>
                 )}
               </div>
+              <input
+                ref={importFileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImport}
+                className="hidden"
+                id="import-calculations"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => importFileInputRef.current?.click()}
+                className="gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                Uvezi
+              </Button>
               <Button
                 type="button"
                 variant="outline"
