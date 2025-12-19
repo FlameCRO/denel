@@ -483,22 +483,31 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
       let importedCount = 0;
       const notFoundItems: string[] = [];
 
-      // Helper function to remove diacritics (č→c, ć→c, ž→z, š→s, đ→d)
+      // Helper function to remove diacritics (č→c, ć→c, ž→z, š→s, đ→d, dž→d)
       const removeDiacritics = (str: string): string => {
         return str
+          .replace(/dž/gi, 'd') // dž → d (must be before ž replacement)
           .replace(/[čć]/gi, 'c')
           .replace(/ž/gi, 'z')
           .replace(/š/gi, 's')
           .replace(/đ/gi, 'd');
       };
 
-      // Helper function to normalize item name (remove price suffix and diacritics)
+      // Helper function to normalize fraction patterns (1/3↔3/1, 1/5↔5/1)
+      const normalizeFractions = (str: string): string => {
+        return str
+          .replace(/\b3\/1\b/g, '1/3')
+          .replace(/\b5\/1\b/g, '1/5');
+      };
+
+      // Helper function to normalize item name (remove price suffix, diacritics, and fractions)
       const normalizeName = (name: string): string => {
         const withoutPrice = name
           .replace(/\s*\d+(?:[.,]\d+)?\s*€?\s*$/, '') // Remove price at end
           .trim()
           .toLowerCase();
-        return removeDiacritics(withoutPrice);
+        const withoutDiacritics = removeDiacritics(withoutPrice);
+        return normalizeFractions(withoutDiacritics);
       };
 
       // Helper function to parse price from string like "14,00 €" or "1,50 €"
