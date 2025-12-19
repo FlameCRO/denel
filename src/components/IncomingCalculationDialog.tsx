@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SavedCalculation } from '@/types/inventory';
 import { Category } from '@/hooks/useCategories';
-import { Plus, Trash2, FileInput, History, FileText, ChevronDown, ChevronUp, Upload, Loader2, Eye, Pencil } from 'lucide-react';
+import { Plus, Trash2, FileInput, History, FileText, ChevronDown, ChevronUp, Upload, Loader2, Eye, Pencil, Download, Search, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { hr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,6 +63,7 @@ export const IncomingCalculationDialog = ({
   const [uploadedPdfBase64, setUploadedPdfBase64] = useState<string | null>(null);
   const [editingCalculationId, setEditingCalculationId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('new');
+  const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -282,6 +283,56 @@ export const IncomingCalculationDialog = ({
     });
   };
 
+  // Export calculations with PDFs
+  const handleExport = () => {
+    if (savedCalculations.length === 0) return;
+
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      calculations: savedCalculations.map(calc => ({
+        id: calc.id,
+        name: calc.name,
+        createdAt: calc.createdAt,
+        totalQuantity: calc.totalQuantity,
+        totalValue: calc.totalValue,
+        items: calc.items,
+        pdfFileName: calc.pdfFileName || null,
+        pdfBase64: calc.pdfBase64 || null,
+      })),
+    };
+
+    const jsonStr = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kalkulacije_izvoz_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: 'Izvoz uspješan',
+      description: `Izvezeno ${savedCalculations.length} kalkulacija${savedCalculations.filter(c => c.pdfBase64).length > 0 ? ' s PDF datotekama' : ''}.`,
+    });
+  };
+
+  // Filter calculations by search query
+  const filteredCalculations = savedCalculations.filter(calc => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    if (calc.name.toLowerCase().includes(query)) return true;
+    return calc.items.some(item => item.name.toLowerCase().includes(query));
+  });
+
+  // Find which items match the search
+  const getMatchingItems = (calc: SavedCalculation) => {
+    if (!searchQuery.trim()) return [];
+    const query = searchQuery.toLowerCase();
+    return calc.items.filter(item => item.name.toLowerCase().includes(query));
+  };
+
   const totalValue = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -499,105 +550,173 @@ export const IncomingCalculationDialog = ({
           </TabsContent>
 
           <TabsContent value="history" className="py-4">
+            {/* Search and Export bar */}
+            <div className="flex items-center gap-2 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Pretraži artikle ili kalkulacije..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-10"
+                />
+                {searchQuery && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleExport}
+                disabled={savedCalculations.length === 0}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Izvezi sve
+              </Button>
+            </div>
+
+            {searchQuery && (
+              <p className="text-sm text-muted-foreground mb-3">
+                Pronađeno {filteredCalculations.length} kalkulacija
+                {filteredCalculations.length > 0 && ` s "${searchQuery}"`}
+              </p>
+            )}
+
             {savedCalculations.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium">Nema spremljenih kalkulacija</p>
                 <p className="text-sm">Kreirajte novu kalkulaciju u kartici "Nova kalkulacija"</p>
               </div>
+            ) : filteredCalculations.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium">Nema rezultata</p>
+                <p className="text-sm">Pokušajte s drugom pretragom</p>
+              </div>
             ) : (
               <div className="space-y-3">
-                {savedCalculations.map((calc) => (
-                  <div
-                    key={calc.id}
-                    className="border rounded-lg overflow-hidden"
-                  >
-                    <button
-                      onClick={() => toggleExpanded(calc.id)}
-                      className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors text-left"
+                {filteredCalculations.map((calc) => {
+                  const matchingItems = getMatchingItems(calc);
+                  return (
+                    <div
+                      key={calc.id}
+                      className="border rounded-lg overflow-hidden"
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-foreground">{calc.name}</h4>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(calc);
-                            }}
-                            className="h-7 gap-1 text-xs"
-                          >
-                            <Pencil className="h-3 w-3" />
-                            Uredi
-                          </Button>
-                          {calc.pdfBase64 && (
+                      <button
+                        onClick={() => toggleExpanded(calc.id)}
+                        className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors text-left"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-foreground">{calc.name}</h4>
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleViewSavedPdf(calc.pdfBase64!, calc.pdfFileName || 'faktura.pdf');
+                                handleEdit(calc);
                               }}
                               className="h-7 gap-1 text-xs"
                             >
-                              <Eye className="h-3 w-3" />
-                              PDF
+                              <Pencil className="h-3 w-3" />
+                              Uredi
                             </Button>
+                            {calc.pdfBase64 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewSavedPdf(calc.pdfBase64!, calc.pdfFileName || 'faktura.pdf');
+                                }}
+                                className="h-7 gap-1 text-xs"
+                              >
+                                <Eye className="h-3 w-3" />
+                                PDF
+                              </Button>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(calc.createdAt), 'dd.MM.yyyy HH:mm', { locale: hr })}
+                          </p>
+                          {/* Show matching items when searching */}
+                          {matchingItems.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {matchingItems.slice(0, 3).map(item => (
+                                <span key={item.id} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                  {item.name}
+                                </span>
+                              ))}
+                              {matchingItems.length > 3 && (
+                                <span className="text-xs text-muted-foreground">
+                                  +{matchingItems.length - 3} više
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(calc.createdAt), 'dd.MM.yyyy HH:mm', { locale: hr })}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-sm text-muted-foreground">{calc.totalQuantity} artikala</p>
-                          <p className="font-semibold text-primary">
-                            {new Intl.NumberFormat('hr-HR', {
-                              style: 'currency',
-                              currency: 'EUR',
-                            }).format(calc.totalValue)}
-                          </p>
-                        </div>
-                        {expandedCalculations.has(calc.id) ? (
-                          <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                        )}
-                      </div>
-                    </button>
-
-                    {expandedCalculations.has(calc.id) && (
-                      <div className="border-t bg-muted/30">
-                        <div className="grid grid-cols-[1fr_120px_80px_100px] gap-2 p-3 text-sm font-medium text-muted-foreground border-b">
-                          <span>Artikl</span>
-                          <span>Kategorija</span>
-                          <span>Količina</span>
-                          <span className="text-right">Cijena</span>
-                        </div>
-                        {calc.items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="grid grid-cols-[1fr_120px_80px_100px] gap-2 p-3 text-sm border-b last:border-b-0"
-                          >
-                            <span className="font-medium">{item.name}</span>
-                            <span className="text-muted-foreground">{getCategoryLabel(item.category)}</span>
-                            <span>{item.quantity} kom</span>
-                            <span className="text-right">
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">{calc.totalQuantity} artikala</p>
+                            <p className="font-semibold text-primary">
                               {new Intl.NumberFormat('hr-HR', {
                                 style: 'currency',
                                 currency: 'EUR',
-                              }).format(item.price)}
-                            </span>
+                              }).format(calc.totalValue)}
+                            </p>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                          {expandedCalculations.has(calc.id) ? (
+                            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                          )}
+                        </div>
+                      </button>
+
+                      {expandedCalculations.has(calc.id) && (
+                        <div className="border-t bg-muted/30">
+                          <div className="grid grid-cols-[1fr_120px_80px_100px] gap-2 p-3 text-sm font-medium text-muted-foreground border-b">
+                            <span>Artikl</span>
+                            <span>Kategorija</span>
+                            <span>Količina</span>
+                            <span className="text-right">Cijena</span>
+                          </div>
+                          {calc.items.map((item) => {
+                            const isMatch = searchQuery && item.name.toLowerCase().includes(searchQuery.toLowerCase());
+                            return (
+                              <div
+                                key={item.id}
+                                className={`grid grid-cols-[1fr_120px_80px_100px] gap-2 p-3 text-sm border-b last:border-b-0 ${isMatch ? 'bg-primary/5' : ''}`}
+                              >
+                                <span className={`font-medium ${isMatch ? 'text-primary' : ''}`}>{item.name}</span>
+                                <span className="text-muted-foreground">{getCategoryLabel(item.category)}</span>
+                                <span>{item.quantity} kom</span>
+                                <span className="text-right">
+                                  {new Intl.NumberFormat('hr-HR', {
+                                    style: 'currency',
+                                    currency: 'EUR',
+                                  }).format(item.price)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
