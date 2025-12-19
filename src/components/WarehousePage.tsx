@@ -424,17 +424,25 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
     });
   };
 
-  const handleExportPDF = () => {
-    const fileName = exportInventoryToPDF({
-      items,
-      warehouseId,
-      getTotalValue,
-      getTotalSalesValue,
-    });
-    toast({
-      title: 'PDF izvezen',
-      description: `Inventura spremljena u ${fileName}`,
-    });
+  const handleExportPDF = async () => {
+    try {
+      const fileName = await exportInventoryToPDF({
+        items,
+        warehouseId,
+        getTotalValue,
+        getTotalSalesValue,
+      });
+      toast({
+        title: 'PDF izvezen',
+        description: `Inventura spremljena u ${fileName}`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Greška pri izvozu',
+        description: 'Nije moguće generirati PDF.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const totalItems = items.reduce((sum, item) => sum + item.quantityOwned, 0);

@@ -16,18 +16,18 @@ const getWarehouseOwner = (warehouseId: string): string => {
     case 'warehouse2':
       return 'Ivana Majdak';
     default:
-      return 'Nepoznato skladiste';
+      return 'Nepoznato skladište';
   }
 };
 
 const getWarehouseDisplayName = (warehouseId: string): string => {
   switch (warehouseId) {
     case 'warehouse1':
-      return 'Skladiste 1';
+      return 'Skladište 1';
     case 'warehouse2':
-      return 'Skladiste 2';
+      return 'Skladište 2';
     default:
-      return 'Skladiste';
+      return 'Skladište';
   }
 };
 
@@ -48,38 +48,52 @@ const formatDate = (date: Date): string => {
   }).format(date);
 };
 
-// Function to transliterate Croatian characters for PDF compatibility
-const transliterate = (text: string): string => {
-  const charMap: { [key: string]: string } = {
-    'č': 'c', 'Č': 'C',
-    'ć': 'c', 'Ć': 'C',
-    'ž': 'z', 'Ž': 'Z',
-    'š': 's', 'Š': 'S',
-    'đ': 'd', 'Đ': 'D',
-  };
-  
-  return text.replace(/[čČćĆžŽšŠđĐ]/g, (char) => charMap[char] || char);
+// Load font dynamically and convert to base64
+const loadFontAsBase64 = async (url: string): Promise<string> => {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 };
 
-export const exportInventoryToPDF = ({
+export const exportInventoryToPDF = async ({
   items,
   warehouseId,
   getTotalValue,
   getTotalSalesValue,
 }: ExportPDFOptions) => {
   const doc = new jsPDF();
+  
+  // Load and embed Roboto font that supports Croatian characters
+  try {
+    const robotoUrl = 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5Q.ttf';
+    const fontBase64 = await loadFontAsBase64(robotoUrl);
+    
+    doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
+    doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+    doc.setFont('Roboto');
+  } catch (error) {
+    console.warn('Could not load Roboto font, falling back to Helvetica');
+    doc.setFont('helvetica');
+  }
+
   const ownerName = getWarehouseOwner(warehouseId);
   const warehouseName = getWarehouseDisplayName(warehouseId);
   const currentDate = formatDate(new Date());
 
   // Header
   doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
   doc.text('INVENTURA', 105, 20, { align: 'center' });
 
   // Warehouse info
   doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
   doc.text(`${warehouseName}`, 14, 35);
   doc.text(`Odgovorna osoba: ${ownerName}`, 14, 42);
   doc.text(`Datum izrade: ${currentDate}`, 14, 49);
@@ -90,10 +104,10 @@ export const exportInventoryToPDF = ({
   const inventoryValue = getTotalValue();
   const salesValue = getTotalSalesValue();
 
-  // Prepare table data - transliterate Croatian characters for PDF compatibility
+  // Prepare table data
   const tableData = items.map((item, index) => [
     (index + 1).toString(),
-    transliterate(item.name),
+    item.name,
     formatPrice(item.price),
     item.quantityOwned.toString(),
     item.quantitySold.toString(),
@@ -112,6 +126,7 @@ export const exportInventoryToPDF = ({
       textColor: 255,
       fontStyle: 'bold',
       halign: 'center',
+      font: 'Roboto',
     },
     columnStyles: {
       0: { halign: 'center', cellWidth: 10 },
@@ -125,6 +140,7 @@ export const exportInventoryToPDF = ({
     styles: {
       fontSize: 9,
       cellPadding: 3,
+      font: 'Roboto',
     },
     alternateRowStyles: {
       fillColor: [245, 245, 245],
@@ -140,10 +156,8 @@ export const exportInventoryToPDF = ({
   doc.line(14, finalY + 10, 196, finalY + 10);
 
   doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
   doc.text('SAŽETAK:', 14, finalY + 20);
 
-  doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
 
   // Left column - quantities
@@ -151,7 +165,6 @@ export const exportInventoryToPDF = ({
   doc.text(`Ukupno prodanih artikala: ${totalSold} kom`, 14, finalY + 38);
 
   // Right column - values
-  doc.setFont('helvetica', 'bold');
   doc.text('VRIJEDNOST INVENTURE (na stanju):', 110, finalY + 30);
   doc.text(formatPrice(inventoryValue), 196, finalY + 30, { align: 'right' });
 
@@ -163,7 +176,6 @@ export const exportInventoryToPDF = ({
 
   // Footer with signature area
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
   doc.text('Potpis:', 14, finalY + 55);
   doc.line(30, finalY + 55, 80, finalY + 55);
 
