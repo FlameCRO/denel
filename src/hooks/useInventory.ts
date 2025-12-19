@@ -1033,6 +1033,12 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
       addCategory('Stolnjaci');
     }
 
+    // Ensure "Trenirke" category exists
+    const trenirkeExists = categories.some(c => c.value === 'trenirke' || c.label.toLowerCase() === 'trenirke');
+    if (!trenirkeExists) {
+      addCategory('Trenirke');
+    }
+
     let categorizedCount = 0;
     let mergedCount = 0;
     
@@ -1080,6 +1086,8 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
           newCategory = 'košulje';
         } else if (itemNameLower.includes('stolnjak') || itemNameLower.includes('stolnjaci')) {
           newCategory = 'stolnjaci';
+        } else if (itemNameLower.includes('trenirk')) {
+          newCategory = 'trenirke';
         } else {
           // Try to match with existing categories by checking if item name contains category label
           let matched = false;
