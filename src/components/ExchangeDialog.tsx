@@ -49,28 +49,32 @@ export const ExchangeDialog = ({
 
   const filteredItems1 = useMemo(() => {
     if (!search1.trim()) return [];
+    const searchLower = search1.toLowerCase();
     return items.filter(item =>
-      item.name.toLowerCase().includes(search1.toLowerCase())
+      item.name.toLowerCase().includes(searchLower) ||
+      `${item.name} ${formatPrice(item.price)}`.toLowerCase().includes(searchLower)
     ).slice(0, 10);
   }, [items, search1]);
 
   const filteredItems2 = useMemo(() => {
     if (!search2.trim()) return [];
+    const searchLower = search2.toLowerCase();
     return items.filter(item =>
-      item.name.toLowerCase().includes(search2.toLowerCase())
+      item.name.toLowerCase().includes(searchLower) ||
+      `${item.name} ${formatPrice(item.price)}`.toLowerCase().includes(searchLower)
     ).slice(0, 10);
   }, [items, search2]);
 
   const handleSelectItem1 = (item: ClothingItem) => {
     setSelectedItem1(item);
-    setSearch1(item.name);
+    setSearch1(`${item.name} ${formatPrice(item.price)}`);
     setItem1SoldChange(0);
     setItem1StockChange(0);
   };
 
   const handleSelectItem2 = (item: ClothingItem) => {
     setSelectedItem2(item);
-    setSearch2(item.name);
+    setSearch2(`${item.name} ${formatPrice(item.price)}`);
     setItem2SoldChange(0);
     setItem2StockChange(0);
   };
@@ -142,6 +146,35 @@ export const ExchangeDialog = ({
     const newSold = item.quantitySold + soldChange;
     const newStock = item.quantityOwned + stockChange;
 
+    // Linked adjustments: +Prodano = -Na stanju, +Na stanju = -Prodano
+    const handleSoldPlus = () => {
+      if (newStock > 0) {
+        setSoldChange(soldChange + 1);
+        setStockChange(stockChange - 1);
+      }
+    };
+
+    const handleSoldMinus = () => {
+      if (newSold > 0) {
+        setSoldChange(soldChange - 1);
+        setStockChange(stockChange + 1);
+      }
+    };
+
+    const handleStockPlus = () => {
+      if (newSold > 0) {
+        setStockChange(stockChange + 1);
+        setSoldChange(soldChange - 1);
+      }
+    };
+
+    const handleStockMinus = () => {
+      if (newStock > 0) {
+        setStockChange(stockChange - 1);
+        setSoldChange(soldChange + 1);
+      }
+    };
+
     return (
       <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
         <div className="font-medium text-sm truncate">{item.name}</div>
@@ -155,7 +188,8 @@ export const ExchangeDialog = ({
               size="sm"
               variant="outline"
               className="h-8 w-8 p-0"
-              onClick={() => setSoldChange(soldChange + 1)}
+              onClick={handleSoldPlus}
+              disabled={newStock <= 0}
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -171,9 +205,7 @@ export const ExchangeDialog = ({
               size="sm"
               variant="outline"
               className="h-8 w-8 p-0"
-              onClick={() => {
-                if (newSold > 0) setSoldChange(soldChange - 1);
-              }}
+              onClick={handleSoldMinus}
               disabled={newSold <= 0}
             >
               <Minus className="h-4 w-4" />
@@ -189,7 +221,8 @@ export const ExchangeDialog = ({
               size="sm"
               variant="outline"
               className="h-8 w-8 p-0"
-              onClick={() => setStockChange(stockChange + 1)}
+              onClick={handleStockPlus}
+              disabled={newSold <= 0}
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -205,9 +238,7 @@ export const ExchangeDialog = ({
               size="sm"
               variant="outline"
               className="h-8 w-8 p-0"
-              onClick={() => {
-                if (newStock > 0) setStockChange(stockChange - 1);
-              }}
+              onClick={handleStockMinus}
               disabled={newStock <= 0}
             >
               <Minus className="h-4 w-4" />
