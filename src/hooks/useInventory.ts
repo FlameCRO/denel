@@ -516,7 +516,8 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
       // Helper function to normalize item name (remove price suffix, diacritics, and fractions)
       const normalizeName = (name: string): string => {
         const withoutPrice = name
-          .replace(/\s*\d+(?:[.,]\d+)?\s*€?\s*$/, '') // Remove price at end
+          // Remove price at end - MUST have space before the number to avoid removing "1" from "1/5"
+          .replace(/\s+\d+(?:[.,]\d+)?\s*€?\s*$/, '')
           .trim()
           .toLowerCase();
         const withSlashesNormalized = normalizeSlashes(withoutPrice);
