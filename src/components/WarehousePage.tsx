@@ -42,7 +42,9 @@ import {
   Calculator,
   Info,
   ArrowRightLeft,
+  FileDown,
 } from 'lucide-react';
+import { exportInventoryToPDF } from '@/utils/exportInventoryPDF';
 import {
   Tooltip,
   TooltipContent,
@@ -422,6 +424,19 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
     });
   };
 
+  const handleExportPDF = () => {
+    const fileName = exportInventoryToPDF({
+      items,
+      warehouseId,
+      getTotalValue,
+      getTotalSalesValue,
+    });
+    toast({
+      title: 'PDF izvezen',
+      description: `Inventura spremljena u ${fileName}`,
+    });
+  };
+
   const totalItems = items.reduce((sum, item) => sum + item.quantityOwned, 0);
   const totalSold = items.reduce((sum, item) => sum + item.quantitySold, 0);
   const lowStockCount = getLowStockItems().length;
@@ -481,6 +496,15 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h2 className="text-2xl font-semibold text-foreground">{warehouseName}</h2>
         <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="default"
+            onClick={handleExportPDF}
+            className="gap-2"
+          >
+            <FileDown className="h-4 w-4" />
+            Izvezi inventuru (PDF)
+          </Button>
+
           <Button
             variant="outline"
             onClick={() => setDailyReportOpen(true)}
