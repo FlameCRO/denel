@@ -318,19 +318,49 @@ export const IncomingCalculationDialog = ({
     });
   };
 
+  // Parse search query for name and optional price (e.g., "hlače 20" -> name: "hlače", price: 20)
+  const parseSearchQuery = (query: string): { nameQuery: string; priceQuery: number | null } => {
+    const trimmed = query.trim();
+    if (!trimmed) return { nameQuery: '', priceQuery: null };
+    
+    // Check if the last part is a number (price)
+    const parts = trimmed.split(/\s+/);
+    const lastPart = parts[parts.length - 1];
+    const priceMatch = lastPart.match(/^(\d+(?:[.,]\d+)?)$/);
+    
+    if (priceMatch && parts.length > 1) {
+      const price = parseFloat(lastPart.replace(',', '.'));
+      const nameQuery = parts.slice(0, -1).join(' ').toLowerCase();
+      return { nameQuery, priceQuery: price };
+    }
+    
+    return { nameQuery: trimmed.toLowerCase(), priceQuery: null };
+  };
+
+  const { nameQuery, priceQuery } = parseSearchQuery(searchQuery);
+
+  // Check if item matches search criteria
+  const itemMatchesSearch = (item: { name: string; price: number }): boolean => {
+    const nameMatches = item.name.toLowerCase().includes(nameQuery);
+    if (priceQuery !== null) {
+      // Price must match exactly (comparing as integers to avoid float issues)
+      const priceMatches = Math.abs(item.price - priceQuery) < 0.01;
+      return nameMatches && priceMatches;
+    }
+    return nameMatches;
+  };
+
   // Filter calculations by search query
   const filteredCalculations = savedCalculations.filter(calc => {
     if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    if (calc.name.toLowerCase().includes(query)) return true;
-    return calc.items.some(item => item.name.toLowerCase().includes(query));
+    if (calc.name.toLowerCase().includes(nameQuery) && priceQuery === null) return true;
+    return calc.items.some(item => itemMatchesSearch(item));
   });
 
   // Find which items match the search
   const getMatchingItems = (calc: SavedCalculation) => {
     if (!searchQuery.trim()) return [];
-    const query = searchQuery.toLowerCase();
-    return calc.items.filter(item => item.name.toLowerCase().includes(query));
+    return calc.items.filter(item => itemMatchesSearch(item));
   };
 
   const totalValue = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
