@@ -483,21 +483,27 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
       let importedCount = 0;
       const notFoundItems: string[] = [];
 
-      // Helper function to remove diacritics (č→c, ć→c, ž→z, š→s, đ→d, dž→d)
+      // Helper function to remove diacritics using Unicode normalization + manual replacements
       const removeDiacritics = (str: string): string => {
-        return str
-          .replace(/dž/gi, 'd') // dž → d (must be before ž replacement)
+        // First handle specific Croatian digraphs and characters
+        let result = str
+          .replace(/dž/gi, 'dz') // dž → dz (treat as equivalent)
+          .replace(/đ/gi, 'dz')  // đ → dz (make compatible with dž)
           .replace(/[čć]/gi, 'c')
           .replace(/ž/gi, 'z')
-          .replace(/š/gi, 's')
-          .replace(/đ/gi, 'd');
+          .replace(/š/gi, 's');
+        
+        // Then use Unicode normalization to catch any remaining diacritics
+        return result
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, ''); // Remove combining diacritical marks
       };
 
       // Helper function to normalize fraction patterns (1/3↔3/1, 1/5↔5/1)
       const normalizeFractions = (str: string): string => {
         return str
-          .replace(/\b3\/1\b/g, '1/3')
-          .replace(/\b5\/1\b/g, '1/5');
+          .replace(/3\/1/g, '1/3')  // 3/1 → 1/3
+          .replace(/5\/1/g, '1/5'); // 5/1 → 1/5
       };
 
       // Helper function to normalize item name (remove price suffix, diacritics, and fractions)
