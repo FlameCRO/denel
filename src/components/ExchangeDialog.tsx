@@ -30,6 +30,13 @@ export interface ExchangeData {
   originalStock: number;
 }
 
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('hr-HR', {
+    style: 'currency',
+    currency: 'EUR',
+  }).format(price);
+};
+
 export const ExchangeDialog = ({
   open,
   onOpenChange,
@@ -123,12 +130,6 @@ export const ExchangeDialog = ({
     setItem2StockChange(0);
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('hr-HR', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(price);
-  };
 
   const hasChanges = 
     (selectedItem1 && (item1SoldChange !== 0 || item1StockChange !== 0)) ||
