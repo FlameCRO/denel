@@ -561,9 +561,6 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
 
         const normalizedCsvName = normalizeName(csvProductName);
 
-        // Debug logging
-        console.log('CSV Product:', csvProductName, '→ Normalized:', normalizedCsvName, '| Price:', csvProductPrice);
-
         // Find matching item by normalized name (without price) and price
         const matchingItem = items.find(item => {
           const normalizedItemName = normalizeName(item.name);
@@ -576,11 +573,6 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
                               normalizedCsvName.includes(normalizedItemName);
           
           const nameMatches = exactMatch || partialMatch;
-          
-          // Debug: log potential matches
-          if (normalizedCsvName.includes('carap') || normalizedItemName.includes('carap')) {
-            console.log('Comparing:', normalizedItemName, '===', normalizedCsvName, '| Match:', nameMatches, '| Prices:', item.price, 'vs', csvProductPrice);
-          }
           
           // If we have a calculated price, also verify the item price matches
           if (csvProductPrice !== null) {
@@ -595,7 +587,18 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
           recordSale(matchingItem.id, quantity);
           importedCount++;
         } else {
-          notFoundItems.push(`${proizvodRaw} (količina: ${quantity}${csvProductPrice !== null ? `, cijena: ${csvProductPrice.toFixed(2)}€` : ''})`);
+          // Find similar items to help debug
+          const similarItems = items.filter(item => {
+            const normalizedItemName = normalizeName(item.name);
+            return normalizedItemName.includes(normalizedCsvName.substring(0, 5)) || 
+                   normalizedCsvName.includes(normalizedItemName.substring(0, 5));
+          }).slice(0, 3);
+          
+          const debugInfo = similarItems.length > 0 
+            ? ` [Slični: ${similarItems.map(i => `${i.name} ${i.price}€`).join(', ')}]`
+            : ` [Normalizirano: "${normalizedCsvName}"]`;
+          
+          notFoundItems.push(`${proizvodRaw} (količina: ${quantity}${csvProductPrice !== null ? `, cijena: ${csvProductPrice.toFixed(2)}€` : ''})${debugInfo}`);
         }
       }
 
