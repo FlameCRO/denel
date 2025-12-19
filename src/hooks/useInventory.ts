@@ -561,6 +561,9 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
 
         const normalizedCsvName = normalizeName(csvProductName);
 
+        // Debug logging
+        console.log('CSV Product:', csvProductName, '→ Normalized:', normalizedCsvName, '| Price:', csvProductPrice);
+
         // Find matching item by normalized name (without price) and price
         const matchingItem = items.find(item => {
           const normalizedItemName = normalizeName(item.name);
@@ -573,6 +576,11 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
                               normalizedCsvName.includes(normalizedItemName);
           
           const nameMatches = exactMatch || partialMatch;
+          
+          // Debug: log potential matches
+          if (normalizedCsvName.includes('carap') || normalizedItemName.includes('carap')) {
+            console.log('Comparing:', normalizedItemName, '===', normalizedCsvName, '| Match:', nameMatches, '| Prices:', item.price, 'vs', csvProductPrice);
+          }
           
           // If we have a calculated price, also verify the item price matches
           if (csvProductPrice !== null) {
