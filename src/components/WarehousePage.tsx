@@ -690,7 +690,7 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
                         <ul className="mt-1 max-h-[200px] overflow-y-auto border rounded p-2 bg-muted/50">
                           {items.filter(item => item.quantityOwned === 0).map(item => (
                             <li key={item.id} className="py-1 border-b last:border-b-0">
-                              {item.name} <span className="text-xs text-muted-foreground">({item.category})</span>
+                              {item.name} - {formatPrice(item.price)} <span className="text-xs text-muted-foreground">({item.category})</span>
                             </li>
                           ))}
                         </ul>
