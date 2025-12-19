@@ -104,8 +104,11 @@ export const exportInventoryToPDF = async ({
   const inventoryValue = getTotalValue();
   const salesValue = getTotalSalesValue();
 
+  // Sort items alphabetically (A-Ž) for PDF export
+  const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name, 'hr'));
+
   // Prepare table data
-  const tableData = items.map((item, index) => [
+  const tableData = sortedItems.map((item, index) => [
     (index + 1).toString(),
     item.name,
     formatPrice(item.price),
