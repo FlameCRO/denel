@@ -1112,13 +1112,70 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
   }, []);
 
   const importCalculations = useCallback((calculations: SavedCalculation[]) => {
-    setSavedCalculations(prev => {
-      // Merge imported calculations, avoiding duplicates by ID
-      const existingIds = new Set(prev.map(c => c.id));
-      const newCalculations = calculations.filter(c => !existingIds.has(c.id));
-      return [...newCalculations, ...prev];
+    // Filter out duplicates first
+    const existingIds = new Set(savedCalculations.map(c => c.id));
+    const newCalculations = calculations.filter(c => !existingIds.has(c.id));
+    
+    if (newCalculations.length === 0) return;
+
+    // Add calculations to saved list
+    setSavedCalculations(prev => [...newCalculations, ...prev]);
+
+    // Process each calculation's items and add to inventory
+    newCalculations.forEach(calc => {
+      calc.items.forEach(incomingItem => {
+        // Check if item already exists (must match name, category AND price)
+        const existingItem = items.find(
+          i => i.name.toLowerCase() === incomingItem.name.toLowerCase() && 
+               i.category === incomingItem.category &&
+               i.price === incomingItem.price
+        );
+
+        if (existingItem) {
+          // Update existing item
+          setItems(prev => prev.map(item =>
+            item.id === existingItem.id
+              ? {
+                  ...item,
+                  quantityIncoming: item.quantityIncoming + incomingItem.quantity,
+                  quantityOwned: item.quantityOwned + incomingItem.quantity,
+                  price: incomingItem.price > 0 ? incomingItem.price : item.price,
+                  updatedAt: new Date(),
+                }
+              : item
+          ));
+          addTransaction(
+            existingItem.id,
+            existingItem.name,
+            'incoming',
+            incomingItem.quantity,
+            `Uvoz kalkulacije: ${calc.name}`
+          );
+        } else {
+          // Add new item
+          const newItem: ClothingItem = {
+            id: generateId(),
+            name: incomingItem.name,
+            category: incomingItem.category,
+            price: incomingItem.price,
+            quantityOwned: incomingItem.quantity,
+            quantitySold: 0,
+            quantityIncoming: incomingItem.quantity,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          setItems(prev => [...prev, newItem]);
+          addTransaction(
+            newItem.id,
+            newItem.name,
+            'incoming',
+            incomingItem.quantity,
+            `Uvoz kalkulacije: ${calc.name} (novi artikl)`
+          );
+        }
+      });
     });
-  }, []);
+  }, [items, savedCalculations, addTransaction]);
 
   return {
     items,
