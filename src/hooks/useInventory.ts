@@ -1210,6 +1210,44 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
     });
   }, [items, savedCalculations, addTransaction]);
 
+  const recordExchange = useCallback((exchanges: Array<{
+    itemId: string;
+    itemName: string;
+    soldChange: number;
+    stockChange: number;
+    originalSold: number;
+    originalStock: number;
+  }>) => {
+    exchanges.forEach(exchange => {
+      setItems(prev => prev.map(item =>
+        item.id === exchange.itemId
+          ? {
+              ...item,
+              quantitySold: item.quantitySold + exchange.soldChange,
+              quantityOwned: item.quantityOwned + exchange.stockChange,
+              updatedAt: new Date(),
+            }
+          : item
+      ));
+
+      const details = [];
+      if (exchange.soldChange !== 0) {
+        details.push(`Prodano: ${exchange.originalSold} → ${exchange.originalSold + exchange.soldChange}`);
+      }
+      if (exchange.stockChange !== 0) {
+        details.push(`Na stanju: ${exchange.originalStock} → ${exchange.originalStock + exchange.stockChange}`);
+      }
+      
+      addTransaction(
+        exchange.itemId,
+        exchange.itemName,
+        'edit',
+        Math.abs(exchange.soldChange) + Math.abs(exchange.stockChange),
+        `Razmjena: ${details.join(', ')}`
+      );
+    });
+  }, [addTransaction]);
+
   return {
     items,
     transactions,
@@ -1219,6 +1257,7 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
     deleteItem,
     recordSale,
     recordIncoming,
+    recordExchange,
     addIncomingCalculation,
     updateIncomingCalculation,
     importCalculations,
