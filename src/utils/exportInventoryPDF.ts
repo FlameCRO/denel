@@ -129,8 +129,8 @@ export const exportInventoryToPDF = async ({
       font: 'Roboto',
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 10 },
-      1: { halign: 'left', cellWidth: 50 },
+      0: { halign: 'center', cellWidth: 15 },
+      1: { halign: 'left', cellWidth: 45 },
       2: { halign: 'right', cellWidth: 22 },
       3: { halign: 'center', cellWidth: 20 },
       4: { halign: 'center', cellWidth: 20 },
