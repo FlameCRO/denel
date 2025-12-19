@@ -392,6 +392,24 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
     });
   };
 
+  const handleRemoveSoldOut = () => {
+    const soldOutItems = items.filter(item => item.quantityOwned === 0);
+    if (soldOutItems.length === 0) {
+      toast({
+        title: 'Nema rasprodanih artikala',
+        description: 'Nema artikala sa stanjem 0.',
+      });
+      return;
+    }
+    
+    soldOutItems.forEach(item => deleteItem(item.id));
+    toast({
+      title: 'Rasprodani artikli uklonjeni',
+      description: `Obrisano ${soldOutItems.length} artikala sa stanjem 0.`,
+      variant: 'destructive',
+    });
+  };
+
   const totalItems = items.reduce((sum, item) => sum + item.quantityOwned, 0);
   const totalSold = items.reduce((sum, item) => sum + item.quantitySold, 0);
   const lowStockCount = getLowStockItems().length;
@@ -650,6 +668,34 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
             <Tags className="h-4 w-4" />
             Kategoriziraj - spoji
           </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                className="gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Ukloni rasprodani artikl
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Ukloniti rasprodane artikle?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Ova akcija će obrisati sve artikle koji imaju stanje 0. Trenutno ima {items.filter(item => item.quantityOwned === 0).length} takvih artikala.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Odustani</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleRemoveSoldOut}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Ukloni
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
