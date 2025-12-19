@@ -1111,6 +1111,15 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
     return { categorizedCount, mergedCount };
   }, []);
 
+  const importCalculations = useCallback((calculations: SavedCalculation[]) => {
+    setSavedCalculations(prev => {
+      // Merge imported calculations, avoiding duplicates by ID
+      const existingIds = new Set(prev.map(c => c.id));
+      const newCalculations = calculations.filter(c => !existingIds.has(c.id));
+      return [...newCalculations, ...prev];
+    });
+  }, []);
+
   return {
     items,
     transactions,
@@ -1122,6 +1131,7 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
     recordIncoming,
     addIncomingCalculation,
     updateIncomingCalculation,
+    importCalculations,
     getRemaining,
     getTotalValue,
     getTotalSalesValue,
