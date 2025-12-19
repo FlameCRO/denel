@@ -16,18 +16,18 @@ const getWarehouseOwner = (warehouseId: string): string => {
     case 'warehouse2':
       return 'Ivana Majdak';
     default:
-      return 'Nepoznato skladište';
+      return 'Nepoznato skladiste';
   }
 };
 
 const getWarehouseDisplayName = (warehouseId: string): string => {
   switch (warehouseId) {
     case 'warehouse1':
-      return 'Skladište 1';
+      return 'Skladiste 1';
     case 'warehouse2':
-      return 'Skladište 2';
+      return 'Skladiste 2';
     default:
-      return 'Skladište';
+      return 'Skladiste';
   }
 };
 
@@ -46,6 +46,19 @@ const formatDate = (date: Date): string => {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
+};
+
+// Function to transliterate Croatian characters for PDF compatibility
+const transliterate = (text: string): string => {
+  const charMap: { [key: string]: string } = {
+    'č': 'c', 'Č': 'C',
+    'ć': 'c', 'Ć': 'C',
+    'ž': 'z', 'Ž': 'Z',
+    'š': 's', 'Š': 'S',
+    'đ': 'd', 'Đ': 'D',
+  };
+  
+  return text.replace(/[čČćĆžŽšŠđĐ]/g, (char) => charMap[char] || char);
 };
 
 export const exportInventoryToPDF = ({
@@ -77,10 +90,10 @@ export const exportInventoryToPDF = ({
   const inventoryValue = getTotalValue();
   const salesValue = getTotalSalesValue();
 
-  // Prepare table data
+  // Prepare table data - transliterate Croatian characters for PDF compatibility
   const tableData = items.map((item, index) => [
     (index + 1).toString(),
-    item.name,
+    transliterate(item.name),
     formatPrice(item.price),
     item.quantityOwned.toString(),
     item.quantitySold.toString(),
