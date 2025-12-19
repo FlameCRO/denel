@@ -483,12 +483,22 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
       let importedCount = 0;
       const notFoundItems: string[] = [];
 
-      // Helper function to normalize item name (remove price suffix)
+      // Helper function to remove diacritics (č→c, ć→c, ž→z, š→s, đ→d)
+      const removeDiacritics = (str: string): string => {
+        return str
+          .replace(/[čć]/gi, 'c')
+          .replace(/ž/gi, 'z')
+          .replace(/š/gi, 's')
+          .replace(/đ/gi, 'd');
+      };
+
+      // Helper function to normalize item name (remove price suffix and diacritics)
       const normalizeName = (name: string): string => {
-        return name
+        const withoutPrice = name
           .replace(/\s*\d+(?:[.,]\d+)?\s*€?\s*$/, '') // Remove price at end
           .trim()
           .toLowerCase();
+        return removeDiacritics(withoutPrice);
       };
 
       // Helper function to parse price from string like "14,00 €" or "1,50 €"
