@@ -499,6 +499,13 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
           .replace(/[\u0300-\u036f]/g, ''); // Remove combining diacritical marks
       };
 
+      // Helper function to normalize slashes (various Unicode slashes to standard /)
+      const normalizeSlashes = (str: string): string => {
+        return str
+          .replace(/[\u2044\uFF0F\u2215\u29F8]/g, '/') // Various Unicode slashes to standard
+          .replace(/\s*\/\s*/g, '/'); // Remove spaces around slashes
+      };
+
       // Helper function to normalize fraction patterns (1/3↔3/1, 1/5↔5/1)
       const normalizeFractions = (str: string): string => {
         return str
@@ -512,7 +519,8 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
           .replace(/\s*\d+(?:[.,]\d+)?\s*€?\s*$/, '') // Remove price at end
           .trim()
           .toLowerCase();
-        const withoutDiacritics = removeDiacritics(withoutPrice);
+        const withSlashesNormalized = normalizeSlashes(withoutPrice);
+        const withoutDiacritics = removeDiacritics(withSlashesNormalized);
         return normalizeFractions(withoutDiacritics);
       };
 
@@ -587,16 +595,27 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
           recordSale(matchingItem.id, quantity);
           importedCount++;
         } else {
-          // Find similar items to help debug
+          // Find similar items to help debug - specifically look for items with same normalized base name AND similar price
+          const csvBaseWords = normalizedCsvName.split(/\s+/);
           const similarItems = items.filter(item => {
             const normalizedItemName = normalizeName(item.name);
-            return normalizedItemName.includes(normalizedCsvName.substring(0, 5)) || 
-                   normalizedCsvName.includes(normalizedItemName.substring(0, 5));
-          }).slice(0, 3);
+            // Check if base names match (first word)
+            const itemBaseWords = normalizedItemName.split(/\s+/);
+            return csvBaseWords[0] === itemBaseWords[0];
+          });
           
-          const debugInfo = similarItems.length > 0 
-            ? ` [Slični: ${similarItems.map(i => `${i.name} ${i.price}€`).join(', ')}]`
-            : ` [Normalizirano: "${normalizedCsvName}"]`;
+          // Find items with matching price
+          const matchingPriceItems = csvProductPrice !== null 
+            ? similarItems.filter(i => Math.abs(i.price - csvProductPrice) < 0.01)
+            : [];
+          
+          let debugInfo = ` [CSV norm.: "${normalizedCsvName}"`;
+          if (matchingPriceItems.length > 0) {
+            debugInfo += `, Ista cijena: ${matchingPriceItems.map(i => `"${i.name}" → "${normalizeName(i.name)}"`).join(', ')}`;
+          } else if (similarItems.length > 0) {
+            debugInfo += `, Slični: ${similarItems.slice(0, 3).map(i => `"${i.name}" ${i.price}€ → "${normalizeName(i.name)}"`).join(', ')}`;
+          }
+          debugInfo += ']';
           
           notFoundItems.push(`${proizvodRaw} (količina: ${quantity}${csvProductPrice !== null ? `, cijena: ${csvProductPrice.toFixed(2)}€` : ''})${debugInfo}`);
         }
