@@ -678,11 +678,27 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
                 Ukloni rasprodani artikl
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className="max-h-[80vh] overflow-hidden flex flex-col">
               <AlertDialogHeader>
                 <AlertDialogTitle>Ukloniti rasprodane artikle?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Ova akcija će obrisati sve artikle koji imaju stanje 0. Trenutno ima {items.filter(item => item.quantityOwned === 0).length} takvih artikala.
+                <AlertDialogDescription asChild>
+                  <div className="text-sm text-muted-foreground">
+                    <p>Ova akcija će obrisati sve artikle koji imaju stanje 0.</p>
+                    {items.filter(item => item.quantityOwned === 0).length > 0 ? (
+                      <>
+                        <p className="mt-2 font-medium">Artikli za brisanje ({items.filter(item => item.quantityOwned === 0).length}):</p>
+                        <ul className="mt-1 max-h-[200px] overflow-y-auto border rounded p-2 bg-muted/50">
+                          {items.filter(item => item.quantityOwned === 0).map(item => (
+                            <li key={item.id} className="py-1 border-b last:border-b-0">
+                              {item.name} <span className="text-xs text-muted-foreground">({item.category})</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : (
+                      <p className="mt-2">Nema artikala sa stanjem 0.</p>
+                    )}
+                  </div>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -690,6 +706,7 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
                 <AlertDialogAction
                   onClick={handleRemoveSoldOut}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={items.filter(item => item.quantityOwned === 0).length === 0}
                 >
                   Ukloni
                 </AlertDialogAction>
