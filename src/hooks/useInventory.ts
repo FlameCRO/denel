@@ -96,15 +96,45 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
   const [transactions, setTransactions] = useState<InventoryTransaction[]>(storedData.transactions);
   const [savedCalculations, setSavedCalculations] = useState<SavedCalculation[]>(storedData.savedCalculations);
 
-  // Auto-save to localStorage
+  // Auto-save to localStorage (without PDF data to save space)
   useEffect(() => {
-    const data = {
-      items,
-      transactions,
-      savedCalculations,
-      lastSaved: new Date().toISOString(),
-    };
-    localStorage.setItem(storageKey, JSON.stringify(data));
+    try {
+      // Remove pdfBase64 from calculations to save localStorage space
+      const calculationsWithoutPdf = savedCalculations.map(calc => ({
+        ...calc,
+        pdfBase64: undefined, // Don't store PDF in localStorage
+      }));
+      
+      const data = {
+        items,
+        transactions,
+        savedCalculations: calculationsWithoutPdf,
+        lastSaved: new Date().toISOString(),
+      };
+      localStorage.setItem(storageKey, JSON.stringify(data));
+    } catch (error) {
+      if (error instanceof Error && error.name === 'QuotaExceededError') {
+        console.warn('[useInventory] localStorage quota exceeded, trying to save without transactions history');
+        try {
+          // Try saving with limited data
+          const calculationsWithoutPdf = savedCalculations.map(calc => ({
+            ...calc,
+            pdfBase64: undefined,
+          }));
+          const limitedData = {
+            items,
+            transactions: transactions.slice(0, 100), // Keep only last 100 transactions
+            savedCalculations: calculationsWithoutPdf,
+            lastSaved: new Date().toISOString(),
+          };
+          localStorage.setItem(storageKey, JSON.stringify(limitedData));
+        } catch (innerError) {
+          console.error('[useInventory] Failed to save even limited data:', innerError);
+        }
+      } else {
+        console.error('[useInventory] Failed to save to localStorage:', error);
+      }
+    }
   }, [items, transactions, savedCalculations, storageKey]);
 
   const addTransaction = useCallback((
