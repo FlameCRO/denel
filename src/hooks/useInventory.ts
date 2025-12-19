@@ -1030,16 +1030,33 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
     let categorizedCount = 0;
     let mergedCount = 0;
     
+    // Helper function to normalize diacritical characters
+    const normalizeDiacritics = (text: string): string => {
+      return text
+        .replace(/č/g, 'c')
+        .replace(/ć/g, 'c')
+        .replace(/ž/g, 'z')
+        .replace(/š/g, 's')
+        .replace(/đ/g, 'd')
+        .replace(/Č/g, 'C')
+        .replace(/Ć/g, 'C')
+        .replace(/Ž/g, 'Z')
+        .replace(/Š/g, 'S')
+        .replace(/Đ/g, 'D');
+    };
+
     setItems(prev => {
       // First, categorize all items
       const categorizedItems = prev.map(item => {
         const itemNameLower = item.name.toLowerCase();
+        const itemNameNormalized = normalizeDiacritics(itemNameLower);
         let newCategory = item.category;
 
         // Special keyword rules first (highest priority)
         if (itemNameLower.includes('prsluk')) {
           newCategory = 'jakne';
-        } else if (itemNameLower.includes('duge gaće') || itemNameLower.includes('duge gace') || itemNameLower.includes('bokserice')) {
+        } else if (itemNameNormalized.includes('gace') || itemNameLower.includes('bokserice')) {
+          // Any item containing "gaće" (normalized to "gace") goes to "Bokserice-gaće"
           newCategory = 'bokserice-gaće';
         } else if (itemNameLower.includes('čarapa') || itemNameLower.includes('čarape') || itemNameLower.includes('carapa') || itemNameLower.includes('carape')) {
           newCategory = 'čarape';
