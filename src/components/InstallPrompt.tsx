@@ -85,47 +85,52 @@ export const InstallPrompt = () => {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-card border border-border rounded-lg shadow-lg p-4 z-50 animate-in slide-in-from-bottom-4">
-      <button
-        onClick={handleDismiss}
-        className="absolute top-2 right-2 text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="Zatvori"
-      >
-        <X className="h-4 w-4" />
-      </button>
+    <div className="fixed top-0 left-0 right-0 bg-primary text-primary-foreground px-4 py-3 z-50 shadow-lg animate-in slide-in-from-top-4">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
+            <Smartphone className="h-5 w-5" />
+          </div>
 
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Smartphone className="h-6 w-6 text-primary" />
+          <div className="min-w-0">
+            <h3 className="font-semibold text-sm">
+              Instaliraj Denel aplikaciju
+            </h3>
+            
+            {isPreview ? (
+              <p className="text-xs opacity-80">
+                <span className="text-yellow-300 font-medium">[Preview]</span> Ovako će izgledati prompt na mobilnom uređaju
+              </p>
+            ) : isIOS ? (
+              <p className="text-xs opacity-80">
+                Pritisni <span className="inline-flex items-center"><svg className="h-3 w-3 mx-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L12 14M12 2L8 6M12 2L16 6M4 14V20H20V14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></span> pa "Dodaj na početni zaslon"
+              </p>
+            ) : (
+              <p className="text-xs opacity-80">
+                Dodaj aplikaciju na početni zaslon za brži pristup
+              </p>
+            )}
+          </div>
         </div>
 
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-foreground text-sm">
-            Instaliraj Denel aplikaciju
-          </h3>
-          
-          {isPreview ? (
-            <p className="text-xs text-muted-foreground mt-1">
-              <span className="text-amber-500 font-medium">[Preview]</span> Ovako će izgledati prompt na mobilnom uređaju
-            </p>
-          ) : isIOS ? (
-            <p className="text-xs text-muted-foreground mt-1">
-              Pritisni <span className="inline-flex items-center"><svg className="h-3 w-3 mx-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L12 14M12 2L8 6M12 2L16 6M4 14V20H20V14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></span> pa "Dodaj na početni zaslon"
-            </p>
-          ) : (
-            <p className="text-xs text-muted-foreground mt-1">
-              Dodaj aplikaciju na početni zaslon za brži pristup
-            </p>
-          )}
-
+        <div className="flex items-center gap-2">
           <Button
             onClick={handleInstall}
             size="sm"
-            className="mt-3 w-full"
+            variant="secondary"
+            className="whitespace-nowrap"
           >
             <Download className="h-4 w-4 mr-2" />
             {isPreview ? 'Instaliraj (Demo)' : 'Instaliraj'}
           </Button>
+          
+          <button
+            onClick={handleDismiss}
+            className="p-1.5 rounded-md hover:bg-primary-foreground/20 transition-colors"
+            aria-label="Zatvori"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>
