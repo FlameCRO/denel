@@ -1,10 +1,13 @@
-import { Package2, Settings, Warehouse } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Package2, Settings, Warehouse, Monitor, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { Toggle } from '@/components/ui/toggle';
 
 export const Header = () => {
   const location = useLocation();
+  const [isMobileView, setIsMobileView] = useState(false);
   const today = new Date().toLocaleDateString('hr-HR', {
     weekday: 'long',
     year: 'numeric',
@@ -16,6 +19,15 @@ export const Header = () => {
     { id: 'warehouse1', name: 'Skladište 1', path: '/' },
     { id: 'warehouse2', name: 'Skladište 2', path: '/skladiste-2' },
   ];
+
+  useEffect(() => {
+    if (isMobileView) {
+      document.body.classList.add('force-mobile-view');
+    } else {
+      document.body.classList.remove('force-mobile-view');
+    }
+    return () => document.body.classList.remove('force-mobile-view');
+  }, [isMobileView]);
 
   return (
     <header className="border-b bg-card card-shadow sticky top-0 z-50">
@@ -53,6 +65,32 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Desktop/Mobile View Toggle */}
+            <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
+              <Toggle
+                pressed={!isMobileView}
+                onPressedChange={() => setIsMobileView(false)}
+                size="sm"
+                className={cn(
+                  "data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                )}
+                aria-label="Desktop prikaz"
+              >
+                <Monitor className="h-4 w-4" />
+              </Toggle>
+              <Toggle
+                pressed={isMobileView}
+                onPressedChange={() => setIsMobileView(true)}
+                size="sm"
+                className={cn(
+                  "data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                )}
+                aria-label="Mobile prikaz"
+              >
+                <Smartphone className="h-4 w-4" />
+              </Toggle>
+            </div>
+
             <Button variant="ghost" size="icon">
               <Settings className="h-5 w-5" />
             </Button>
