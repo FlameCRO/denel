@@ -9,83 +9,64 @@ interface BeforeInstallPromptEvent extends Event {
 
 export const InstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
-  const [isPreview, setIsPreview] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [isIOS] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent));
+  const [isStandalone] = useState(() => window.matchMedia('(display-mode: standalone)').matches);
+  const [isPreview] = useState(() => 
+    window.location.hostname.includes('lovableproject.com') || 
+    window.location.hostname === 'localhost' ||
+    window.self !== window.top
+  );
 
   useEffect(() => {
-    // Check if in Lovable preview (iframe or localhost)
-    const inPreview = window.location.hostname.includes('lovableproject.com') || 
-                      window.location.hostname === 'localhost' ||
-                      window.self !== window.top;
-    setIsPreview(inPreview);
-
-    // Check if already installed
-    const standalone = window.matchMedia('(display-mode: standalone)').matches;
-    setIsStandalone(standalone);
-
-    // Check if iOS
-    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    setIsIOS(ios);
-
-    // Check if prompt was dismissed recently
-    const dismissedAt = localStorage.getItem('installPromptDismissed');
-    if (dismissedAt && !inPreview) {
-      const dismissedTime = parseInt(dismissedAt, 10);
-      const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24);
-      if (daysSinceDismissed < 7) {
-        return; // Don't show for 7 days after dismissal
+    // Check if dismissed recently (only in production)
+    if (!isPreview) {
+      const dismissedAt = localStorage.getItem('installPromptDismissed');
+      if (dismissedAt) {
+        const dismissedTime = parseInt(dismissedAt, 10);
+        const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24);
+        if (daysSinceDismissed < 7) {
+          setDismissed(true);
+        }
       }
     }
 
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setShowPrompt(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-
-    // Show iOS prompt after a delay, or show preview prompt immediately
-    if (inPreview) {
-      setTimeout(() => setShowPrompt(true), 1000);
-    } else if (ios && !standalone) {
-      setTimeout(() => setShowPrompt(true), 3000);
-    }
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
-    };
-  }, []);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, [isPreview]);
 
   const handleInstall = async () => {
     if (deferredPrompt) {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
-        setShowPrompt(false);
+        setDismissed(true);
       }
       setDeferredPrompt(null);
-    } else if (isPreview) {
-      // Demo mode - just hide the prompt
-      setShowPrompt(false);
+    } else {
+      setDismissed(true);
     }
   };
 
   const handleDismiss = () => {
-    setShowPrompt(false);
+    setDismissed(true);
     if (!isPreview) {
       localStorage.setItem('installPromptDismissed', Date.now().toString());
     }
   };
 
-  if (isStandalone || !showPrompt) {
+  // Hide if dismissed or if already installed (but always show in preview)
+  if (dismissed || (!isPreview && isStandalone)) {
     return null;
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 bg-primary text-primary-foreground px-4 py-3 z-50 shadow-lg animate-in slide-in-from-top-4">
+    <div className="w-full bg-primary text-primary-foreground px-4 py-3 shadow-lg">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
@@ -103,7 +84,7 @@ export const InstallPrompt = () => {
               </p>
             ) : isIOS ? (
               <p className="text-xs opacity-80">
-                Pritisni <span className="inline-flex items-center"><svg className="h-3 w-3 mx-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L12 14M12 2L8 6M12 2L16 6M4 14V20H20V14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></span> pa "Dodaj na početni zaslon"
+                Pritisni dijeli ikonu pa "Dodaj na početni zaslon"
               </p>
             ) : (
               <p className="text-xs opacity-80">

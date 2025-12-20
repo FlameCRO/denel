@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { InstallPrompt } from "@/components/InstallPrompt";
+
 import Index from "./pages/Index";
 import Warehouse2 from "./pages/Warehouse2";
 import NotFound from "./pages/NotFound";
@@ -17,7 +17,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <InstallPrompt />
+        
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
