@@ -12,8 +12,15 @@ export const InstallPrompt = () => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [isPreview, setIsPreview] = useState(false);
 
   useEffect(() => {
+    // Check if in Lovable preview (iframe or localhost)
+    const inPreview = window.location.hostname.includes('lovableproject.com') || 
+                      window.location.hostname === 'localhost' ||
+                      window.self !== window.top;
+    setIsPreview(inPreview);
+
     // Check if already installed
     const standalone = window.matchMedia('(display-mode: standalone)').matches;
     setIsStandalone(standalone);
@@ -24,7 +31,7 @@ export const InstallPrompt = () => {
 
     // Check if prompt was dismissed recently
     const dismissedAt = localStorage.getItem('installPromptDismissed');
-    if (dismissedAt) {
+    if (dismissedAt && !inPreview) {
       const dismissedTime = parseInt(dismissedAt, 10);
       const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24);
       if (daysSinceDismissed < 7) {
@@ -40,8 +47,10 @@ export const InstallPrompt = () => {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
 
-    // Show iOS prompt after a delay
-    if (ios && !standalone) {
+    // Show iOS prompt after a delay, or show preview prompt immediately
+    if (inPreview) {
+      setTimeout(() => setShowPrompt(true), 1000);
+    } else if (ios && !standalone) {
       setTimeout(() => setShowPrompt(true), 3000);
     }
 
@@ -58,12 +67,17 @@ export const InstallPrompt = () => {
         setShowPrompt(false);
       }
       setDeferredPrompt(null);
+    } else if (isPreview) {
+      // Demo mode - just hide the prompt
+      setShowPrompt(false);
     }
   };
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    localStorage.setItem('installPromptDismissed', Date.now().toString());
+    if (!isPreview) {
+      localStorage.setItem('installPromptDismissed', Date.now().toString());
+    }
   };
 
   if (isStandalone || !showPrompt) {
@@ -90,7 +104,11 @@ export const InstallPrompt = () => {
             Instaliraj Denel aplikaciju
           </h3>
           
-          {isIOS ? (
+          {isPreview ? (
+            <p className="text-xs text-muted-foreground mt-1">
+              <span className="text-amber-500 font-medium">[Preview]</span> Ovako će izgledati prompt na mobilnom uređaju
+            </p>
+          ) : isIOS ? (
             <p className="text-xs text-muted-foreground mt-1">
               Pritisni <span className="inline-flex items-center"><svg className="h-3 w-3 mx-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L12 14M12 2L8 6M12 2L16 6M4 14V20H20V14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></span> pa "Dodaj na početni zaslon"
             </p>
@@ -100,16 +118,14 @@ export const InstallPrompt = () => {
             </p>
           )}
 
-          {!isIOS && deferredPrompt && (
-            <Button
-              onClick={handleInstall}
-              size="sm"
-              className="mt-3 w-full"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Instaliraj
-            </Button>
-          )}
+          <Button
+            onClick={handleInstall}
+            size="sm"
+            className="mt-3 w-full"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {isPreview ? 'Instaliraj (Demo)' : 'Instaliraj'}
+          </Button>
         </div>
       </div>
     </div>
