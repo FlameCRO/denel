@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Package2, Settings, Warehouse, Monitor, Smartphone } from 'lucide-react';
+import { Settings, Warehouse, Monitor, Smartphone, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Toggle } from '@/components/ui/toggle';
+import denelLogo from '@/assets/denel-logo.png';
 
 export const Header = () => {
   const location = useLocation();
   const [isMobileView, setIsMobileView] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.classList.contains('dark');
+    }
+    return false;
+  });
   const today = new Date().toLocaleDateString('hr-HR', {
     weekday: 'long',
     year: 'numeric',
@@ -29,14 +36,36 @@ export const Header = () => {
     return () => document.body.classList.remove('force-mobile-view');
   }, [isMobileView]);
 
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      setIsDarkMode(true);
+    } else if (savedTheme === 'light') {
+      setIsDarkMode(false);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setIsDarkMode(true);
+    }
+  }, []);
+
   return (
     <header className="border-b bg-card card-shadow sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3">
         {/* Top row - Logo, Title, Toggle */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary text-primary-foreground">
-              <Package2 className="h-5 w-5" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-white overflow-hidden">
+              <img src={denelLogo} alt="Denel logo" className="h-8 w-8 object-contain" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-foreground tracking-tight">
@@ -47,6 +76,32 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Dark/Light Mode Toggle */}
+            <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
+              <Toggle
+                pressed={!isDarkMode}
+                onPressedChange={() => setIsDarkMode(false)}
+                size="sm"
+                className={cn(
+                  "h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                )}
+                aria-label="Light mode"
+              >
+                <Sun className="h-4 w-4" />
+              </Toggle>
+              <Toggle
+                pressed={isDarkMode}
+                onPressedChange={() => setIsDarkMode(true)}
+                size="sm"
+                className={cn(
+                  "h-8 w-8 p-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                )}
+                aria-label="Dark mode"
+              >
+                <Moon className="h-4 w-4" />
+              </Toggle>
+            </div>
+
             {/* Desktop/Mobile View Toggle */}
             <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
               <Toggle
