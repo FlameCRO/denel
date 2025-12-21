@@ -8,10 +8,19 @@ import denelLogo from '@/assets/denel-logo.png';
 
 export const Header = () => {
   const location = useLocation();
-  const [isMobileView, setIsMobileView] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('viewMode') === 'mobile';
+    }
+    return false;
+  });
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark');
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        return savedTheme === 'dark';
+      }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
     return false;
   });
@@ -30,8 +39,10 @@ export const Header = () => {
   useEffect(() => {
     if (isMobileView) {
       document.body.classList.add('force-mobile-view');
+      localStorage.setItem('viewMode', 'mobile');
     } else {
       document.body.classList.remove('force-mobile-view');
+      localStorage.setItem('viewMode', 'desktop');
     }
     return () => document.body.classList.remove('force-mobile-view');
   }, [isMobileView]);
@@ -46,15 +57,10 @@ export const Header = () => {
     }
   }, [isDarkMode]);
 
-  // Load theme from localStorage on mount
+  // Apply initial dark mode class on mount
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setIsDarkMode(true);
-    } else if (savedTheme === 'light') {
-      setIsDarkMode(false);
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setIsDarkMode(true);
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
     }
   }, []);
 
