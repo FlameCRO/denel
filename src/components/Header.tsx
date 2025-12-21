@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Settings, Warehouse, Monitor, Smartphone, Sun, Moon } from 'lucide-react';
+import { Settings, Warehouse, Monitor, Smartphone, Sun, Moon, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Toggle } from '@/components/ui/toggle';
 import denelLogo from '@/assets/denel-logo.png';
+import { WarehouseManagerDialog, getWarehouseManagers } from '@/components/WarehouseManagerDialog';
 
 export const Header = () => {
   const location = useLocation();
@@ -31,10 +32,20 @@ export const Header = () => {
     day: 'numeric',
   });
 
+  const [managerDialogOpen, setManagerDialogOpen] = useState(false);
+  const [managers, setManagers] = useState(getWarehouseManagers());
+
   const warehouses = [
-    { id: 'warehouse1', name: 'Skladište 1', path: '/' },
-    { id: 'warehouse2', name: 'Skladište 2', path: '/skladiste-2' },
+    { id: 'warehouse1', name: 'Skladište 1', path: '/', manager: managers.warehouse1 },
+    { id: 'warehouse2', name: 'Skladište 2', path: '/skladiste-2', manager: managers.warehouse2 },
   ];
+
+  // Refresh managers when dialog closes
+  useEffect(() => {
+    if (!managerDialogOpen) {
+      setManagers(getWarehouseManagers());
+    }
+  }, [managerDialogOpen]);
 
   useEffect(() => {
     if (isMobileView) {
@@ -134,31 +145,50 @@ export const Header = () => {
               </Toggle>
             </div>
 
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8"
+              onClick={() => setManagerDialogOpen(true)}
+              title="Podešavanja odgovornih osoba"
+            >
               <Settings className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
         {/* Bottom row - Warehouse tabs */}
-        <div className="flex items-center gap-1 bg-muted p-1 rounded-lg w-fit">
-          {warehouses.map((warehouse) => (
-            <Link key={warehouse.id} to={warehouse.path}>
-              <Button
-                variant={location.pathname === warehouse.path ? 'default' : 'ghost'}
-                size="sm"
-                className={cn(
-                  "gap-2 text-sm",
-                  location.pathname === warehouse.path && "shadow-sm"
-                )}
-              >
-                <Warehouse className="h-4 w-4" />
-                {warehouse.name}
-              </Button>
-            </Link>
-          ))}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
+            {warehouses.map((warehouse) => (
+              <Link key={warehouse.id} to={warehouse.path}>
+                <Button
+                  variant={location.pathname === warehouse.path ? 'default' : 'ghost'}
+                  size="sm"
+                  className={cn(
+                    "gap-2 text-sm flex-col h-auto py-2 px-3",
+                    location.pathname === warehouse.path && "shadow-sm"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <Warehouse className="h-4 w-4" />
+                    {warehouse.name}
+                  </div>
+                  <span className="text-[10px] font-normal opacity-70 flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    {warehouse.manager}
+                  </span>
+                </Button>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
+      
+      <WarehouseManagerDialog 
+        open={managerDialogOpen} 
+        onOpenChange={setManagerDialogOpen} 
+      />
     </header>
   );
 };
