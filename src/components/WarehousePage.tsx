@@ -501,331 +501,357 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
       </div>
 
       {/* Actions Bar */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <h2 className="text-2xl font-semibold text-foreground">{warehouseName}</h2>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            variant="default"
-            onClick={handleExportPDF}
-            className="gap-2"
-          >
-            <FileDown className="h-4 w-4" />
-            Izvezi inventuru (PDF)
-          </Button>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <h2 className="text-2xl font-semibold text-foreground">{warehouseName}</h2>
+          
+          {/* Primary Actions */}
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                setEditItem(null);
+                setAddDialogOpen(true);
+              }}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Dodaj artikl
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setIncomingCalcOpen(true)}
+              className="gap-2"
+            >
+              <FileInput className="h-4 w-4" />
+              Ulazna kalkulacija
+            </Button>
+          </div>
+        </div>
 
-          <Button
-            variant="outline"
-            onClick={() => setDailyReportOpen(true)}
-            className="gap-2"
-          >
-            <FileText className="h-4 w-4" />
-            Dnevni izvještaj
-          </Button>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
+        {/* Button Groups */}
+        <div className="flex flex-wrap gap-6">
+          {/* Export Group */}
+          <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+            <span className="text-xs font-medium text-muted-foreground px-2">Izvoz:</span>
+            <Button
+              variant="default"
+              onClick={handleExportPDF}
+              size="sm"
+              className="gap-2"
+            >
+              <FileDown className="h-4 w-4" />
+              PDF
+            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    onClick={handleExportCSV}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    CSV
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">Izvoz u CSV format</p>
+                  <p className="text-xs">Stupci: Naziv, Kategorija, Cijena, Na stanju, Prodano, U dolasku</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    onClick={handleExportJSON}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    Backup
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">Backup u JSON format</p>
+                  <p className="text-xs">Sprema kompletne podatke svih artikala.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          {/* Import Group */}
+          <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+            <span className="text-xs font-medium text-muted-foreground px-2">Uvoz:</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Backup
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">Uvoz iz JSON backupa</p>
+                  <p className="text-xs">Zamjenjuje sve trenutne podatke!</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleImportJSON}
+              className="hidden"
+            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    onClick={() => csvInventoryInputRef.current?.click()}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <FileInput className="h-4 w-4" />
+                    Inventura
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">Uvoz inventure iz CSV-a</p>
+                  <p className="text-xs">Format: Naziv, Cijena, Količina na stanju</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <input
+              ref={csvInventoryInputRef}
+              type="file"
+              accept=".csv,text/csv,text/plain,application/vnd.ms-excel,*/*"
+              onChange={handleImportInventoryCSV}
+              style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    onClick={() => csvItemsInputRef.current?.click()}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <FileInput className="h-4 w-4" />
+                    Artikli
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">Uvoz novih artikala iz CSV-a</p>
+                  <p className="text-xs">Format: Naziv, Kategorija, Cijena, Količina</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <input
+              ref={csvItemsInputRef}
+              type="file"
+              accept=".csv,text/csv,text/plain,application/vnd.ms-excel,*/*"
+              onChange={handleImportItemsCSV}
+              style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    onClick={() => csvSalesInputRef.current?.click()}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <FileInput className="h-4 w-4" />
+                    Prodaja
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">Uvoz prodaje iz CSV-a</p>
+                  <p className="text-xs">Format: Naziv artikla, Količina prodano</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <input
+              ref={csvSalesInputRef}
+              type="file"
+              accept=".csv,text/csv,text/plain,application/vnd.ms-excel,*/*"
+              onChange={handleImportSalesCSV}
+              style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+            />
+          </div>
+
+          {/* Tools Group */}
+          <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+            <span className="text-xs font-medium text-muted-foreground px-2">Alati:</span>
+            <Button
+              variant="outline"
+              onClick={() => setDailyReportOpen(true)}
+              size="sm"
+              className="gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Dnevni izvještaj
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setHistoryOpen(true)}
+              size="sm"
+              className="gap-2"
+            >
+              <History className="h-4 w-4" />
+              Povijest
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setExchangeDialogOpen(true)}
+              size="sm"
+              className="gap-2"
+            >
+              <ArrowRightLeft className="h-4 w-4" />
+              Razmjeni
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleCategorizeAll}
+              size="sm"
+              className="gap-2"
+            >
+              <Tags className="h-4 w-4" />
+              Kategoriziraj
+            </Button>
+          </div>
+
+          {/* Danger Zone */}
+          <div className="flex items-center gap-2 p-2 bg-destructive/10 rounded-lg">
+            <span className="text-xs font-medium text-destructive px-2">Opasne akcije:</span>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={handleExportCSV}
-                  className="gap-2"
+                  size="sm"
+                  className="gap-2 border-destructive/50 text-destructive hover:bg-destructive/10"
                 >
-                  <Download className="h-4 w-4" />
-                  Izvezi CSV
-                  <Info className="h-3 w-3 text-muted-foreground" />
+                  <RotateCcw className="h-4 w-4" />
+                  Reset prodano
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="font-semibold mb-1">Izvoz u CSV format</p>
-                <p className="text-xs">Stupci: Naziv, Kategorija, Cijena, Na stanju, Prodano, U dolasku</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Resetirati sve prodano?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Ova akcija će postaviti prodanu količinu na 0 za sve artikle. Ova radnja se ne može poništiti.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Odustani</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      resetAllSales();
+                      toast({
+                        title: 'Reset uspješan',
+                        description: 'Sve prodane količine su postavljene na 0.',
+                      });
+                    }}
+                  >
+                    Resetiraj
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={handleExportJSON}
-                  className="gap-2"
+                  size="sm"
+                  className="gap-2 border-destructive/50 text-destructive hover:bg-destructive/10"
                 >
-                  <Save className="h-4 w-4" />
-                  Backup
-                  <Info className="h-3 w-3 text-muted-foreground" />
+                  <Trash2 className="h-4 w-4" />
+                  Ukloni rasprodano
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="font-semibold mb-1">Backup u JSON format</p>
-                <p className="text-xs">Sprema kompletne podatke svih artikala uključujući sve količine i kategorije.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="max-h-[80vh] overflow-hidden flex flex-col">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Ukloniti rasprodane artikle?</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="text-sm text-muted-foreground">
+                      <p>Ova akcija će obrisati sve artikle koji imaju stanje 0.</p>
+                      {items.filter(item => item.quantityOwned === 0).length > 0 ? (
+                        <>
+                          <p className="mt-2 font-medium">Artikli za brisanje ({items.filter(item => item.quantityOwned === 0).length}):</p>
+                          <ul className="mt-1 max-h-[200px] overflow-y-auto border rounded p-2 bg-muted/50">
+                            {items.filter(item => item.quantityOwned === 0).map(item => (
+                              <li key={item.id} className="py-1 border-b last:border-b-0">
+                                {item.name} - {formatPrice(item.price)} <span className="text-xs text-muted-foreground">({item.category})</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : (
+                        <p className="mt-2">Nema artikala sa stanjem 0.</p>
+                      )}
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Odustani</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleRemoveSoldOut}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={items.filter(item => item.quantityOwned === 0).length === 0}
+                  >
+                    Ukloni
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
                 <Button
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
+                  variant="destructive"
+                  size="sm"
                   className="gap-2"
                 >
-                  <Upload className="h-4 w-4" />
-                  Uvezi
-                  <Info className="h-3 w-3 text-muted-foreground" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="font-semibold mb-1">Uvoz iz JSON backupa</p>
-                <p className="text-xs">Učitava prethodno spremljeni backup. Zamjenjuje sve trenutne podatke!</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            onChange={handleImportJSON}
-            className="hidden"
-          />
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  onClick={() => csvSalesInputRef.current?.click()}
-                  className="gap-2"
-                >
-                  <FileInput className="h-4 w-4" />
-                  Uvezi prodaju (CSV)
-                  <Info className="h-3 w-3 text-muted-foreground" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="font-semibold mb-1">Uvoz prodaje iz CSV-a</p>
-                <p className="text-xs">Očekivani format: Naziv artikla, Količina prodano</p>
-                <p className="text-xs mt-1">Traži artikl po imenu i dodaje prodanu količinu.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <input
-            ref={csvSalesInputRef}
-            type="file"
-            accept=".csv,text/csv,text/plain,application/vnd.ms-excel,*/*"
-            onChange={handleImportSalesCSV}
-            style={{ display: 'none', position: 'absolute', left: '-9999px' }}
-          />
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  onClick={() => csvItemsInputRef.current?.click()}
-                  className="gap-2"
-                >
-                  <FileInput className="h-4 w-4" />
-                  Uvezi artikle (CSV)
-                  <Info className="h-3 w-3 text-muted-foreground" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="font-semibold mb-1">Uvoz novih artikala iz CSV-a</p>
-                <p className="text-xs">Očekivani format: Naziv, Kategorija, Cijena, Količina</p>
-                <p className="text-xs mt-1">Dodaje nove artikle u inventuru.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <input
-            ref={csvItemsInputRef}
-            type="file"
-            accept=".csv,text/csv,text/plain,application/vnd.ms-excel,*/*"
-            onChange={handleImportItemsCSV}
-            style={{ display: 'none', position: 'absolute', left: '-9999px' }}
-          />
-
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  onClick={() => csvInventoryInputRef.current?.click()}
-                  className="gap-2"
-                >
-                  <FileInput className="h-4 w-4" />
-                  Uvezi Inventuru
-                  <Info className="h-3 w-3 text-muted-foreground" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="font-semibold mb-1">Uvoz inventure iz CSV-a</p>
-                <p className="text-xs">Očekivani format: Naziv, Cijena, Količina na stanju</p>
-                <p className="text-xs mt-1">Ažurira količine postojećih artikala ili dodaje nove.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <input
-            ref={csvInventoryInputRef}
-            type="file"
-            accept=".csv,text/csv,text/plain,application/vnd.ms-excel,*/*"
-            onChange={handleImportInventoryCSV}
-            style={{ display: 'none', position: 'absolute', left: '-9999px' }}
-          />
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="gap-2"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset prodano
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Resetirati sve prodano?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Ova akcija će postaviti prodanu količinu na 0 za sve artikle. Ova radnja se ne može poništiti.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Odustani</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    resetAllSales();
-                    toast({
-                      title: 'Reset uspješan',
-                      description: 'Sve prodane količine su postavljene na 0.',
-                    });
-                  }}
-                >
-                  Resetiraj
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <Button
-            variant="outline"
-            onClick={handleCategorizeAll}
-            className="gap-2"
-          >
-            <Tags className="h-4 w-4" />
-            Kategoriziraj - spoji
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="destructive"
-                className="gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Ukloni rasprodani artikl
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="max-h-[80vh] overflow-hidden flex flex-col">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Ukloniti rasprodane artikle?</AlertDialogTitle>
-                <AlertDialogDescription asChild>
-                  <div className="text-sm text-muted-foreground">
-                    <p>Ova akcija će obrisati sve artikle koji imaju stanje 0.</p>
-                    {items.filter(item => item.quantityOwned === 0).length > 0 ? (
-                      <>
-                        <p className="mt-2 font-medium">Artikli za brisanje ({items.filter(item => item.quantityOwned === 0).length}):</p>
-                        <ul className="mt-1 max-h-[200px] overflow-y-auto border rounded p-2 bg-muted/50">
-                          {items.filter(item => item.quantityOwned === 0).map(item => (
-                            <li key={item.id} className="py-1 border-b last:border-b-0">
-                              {item.name} - {formatPrice(item.price)} <span className="text-xs text-muted-foreground">({item.category})</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </>
-                    ) : (
-                      <p className="mt-2">Nema artikala sa stanjem 0.</p>
-                    )}
-                  </div>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Odustani</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleRemoveSoldOut}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  disabled={items.filter(item => item.quantityOwned === 0).length === 0}
-                >
-                  Ukloni
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="destructive"
-                className="gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Obriši sve
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Obrisati sve artikle?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Ova akcija će trajno obrisati SVE artikle, povijest transakcija i spremljene kalkulacije. Ova radnja se NE MOŽE poništiti!
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Odustani</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    deleteAllItems();
-                    toast({
-                      title: 'Brisanje uspješno',
-                      description: 'Svi artikli su obrisani.',
-                      variant: 'destructive',
-                    });
-                  }}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
+                  <Trash2 className="h-4 w-4" />
                   Obriši sve
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <Button
-            variant="outline"
-            onClick={() => setExchangeDialogOpen(true)}
-            className="gap-2"
-          >
-            <ArrowRightLeft className="h-4 w-4" />
-            Razmjeni
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setHistoryOpen(true)}
-            className="gap-2"
-          >
-            <History className="h-4 w-4" />
-            Povijest
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => setIncomingCalcOpen(true)}
-            className="gap-2"
-          >
-            <FileInput className="h-4 w-4" />
-            Ulazna kalkulacija
-          </Button>
-          <Button
-            onClick={() => {
-              setEditItem(null);
-              setAddDialogOpen(true);
-            }}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Dodaj artikl
-          </Button>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Obrisati sve artikle?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Ova akcija će trajno obrisati SVE artikle, povijest transakcija i spremljene kalkulacije. Ova radnja se NE MOŽE poništiti!
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Odustani</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      deleteAllItems();
+                      toast({
+                        title: 'Brisanje uspješno',
+                        description: 'Svi artikli su obrisani.',
+                        variant: 'destructive',
+                      });
+                    }}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Obriši sve
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </div>
 
