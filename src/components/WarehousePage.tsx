@@ -8,6 +8,7 @@ import { TransactionHistoryDialog } from '@/components/TransactionHistoryDialog'
 import { IncomingCalculationDialog } from '@/components/IncomingCalculationDialog';
 import { CategoryManagementDialog } from '@/components/CategoryManagementDialog';
 import { ExchangeDialog, ExchangeData } from '@/components/ExchangeDialog';
+import { UnfoundItemsDialog, parseUnfoundItems } from '@/components/UnfoundItemsDialog';
 import { useInventory } from '@/hooks/useInventory';
 import { useCategories } from '@/hooks/useCategories';
 import { ClothingItem } from '@/types/inventory';
@@ -103,6 +104,8 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
   const [incomingCalcOpen, setIncomingCalcOpen] = useState(false);
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [exchangeDialogOpen, setExchangeDialogOpen] = useState(false);
+  const [unfoundItemsDialogOpen, setUnfoundItemsDialogOpen] = useState(false);
+  const [unfoundItems, setUnfoundItems] = useState<string[]>([]);
   
   const { categories, addCategory, renameCategory, deleteCategory, getCategoryLabel } = useCategories(warehouseId);
 
@@ -235,22 +238,23 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
         
         if (result.success) {
           let description = result.message;
+          
+          // If there are unfound items, open the dialog for manual entry
           if (result.notFound && result.notFound.length > 0) {
-            description += `\n\nNepronađeni artikli (${result.notFound.length}):`;
-            const itemsToShow = result.notFound.slice(0, 10);
-            description += '\n' + itemsToShow.join('\n');
-            if (result.notFound.length > 10) {
-              description += `\n... i još ${result.notFound.length - 10} artikala`;
-            }
+            setUnfoundItems(result.notFound);
+            setUnfoundItemsDialogOpen(true);
+            
+            description += `\n\n${result.notFound.length} artikala nije pronađeno - otvaram dijalog za ručni unos.`;
           }
+          
           toast({
             title: 'Uvoz prodaja uspješan',
             description: (
-              <pre className="whitespace-pre-wrap text-xs max-h-[300px] overflow-y-auto">
+              <pre className="whitespace-pre-wrap text-xs max-h-[150px] overflow-y-auto">
                 {description}
               </pre>
             ),
-            duration: (result.notFound?.length || 0) > 0 ? 15000 : 5000,
+            duration: 5000,
           });
         } else {
           toast({
@@ -282,6 +286,33 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
     
     if (csvSalesInputRef.current) {
       csvSalesInputRef.current.value = '';
+    }
+  };
+
+  const handleAddUnfoundItems = (itemsToAdd: Array<{ name: string; price: number; quantity: number }>) => {
+    let addedCount = 0;
+    
+    itemsToAdd.forEach(item => {
+      // Add item to inventory with sold quantity set to the imported quantity
+      const newItem = addItem({
+        name: item.name,
+        category: 'ostalo', // Default category for manually added items
+        price: item.price,
+        quantityOwned: 0, // Start with 0 since this is a sale
+        quantitySold: item.quantity,
+        quantityIncoming: 0,
+      });
+      
+      if (newItem) {
+        addedCount++;
+      }
+    });
+    
+    if (addedCount > 0) {
+      toast({
+        title: 'Artikli dodani',
+        description: `Dodano ${addedCount} novih artikala u inventuru.`,
+      });
     }
   };
 
@@ -928,6 +959,13 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
         onOpenChange={setExchangeDialogOpen}
         items={items}
         onExchange={handleExchange}
+      />
+
+      <UnfoundItemsDialog
+        open={unfoundItemsDialogOpen}
+        onOpenChange={setUnfoundItemsDialogOpen}
+        unfoundItems={parseUnfoundItems(unfoundItems)}
+        onAddItems={handleAddUnfoundItems}
       />
     </div>
   );
