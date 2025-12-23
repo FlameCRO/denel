@@ -137,14 +137,14 @@ export const SalesMatchingDialog = ({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 pb-4 border-b bg-gradient-to-r from-slate-900 to-slate-800">
+        <div className="flex items-center justify-between p-4 md:p-6 pb-4 border-b bg-gradient-to-r from-slate-900 to-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-              <ShoppingCart className="w-6 h-6 text-primary" />
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+              <ShoppingCart className="w-5 h-5 md:w-6 md:h-6 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">RUČNO UPARIVANJE PRODAJE</h2>
-              <p className="text-sm text-slate-400">STAVKA {currentIndex + 1} OD {totalItems}</p>
+              <h2 className="text-lg md:text-xl font-bold text-white">RUČNO UPARIVANJE PRODAJE</h2>
+              <p className="text-xs md:text-sm text-slate-400">STAVKA {currentIndex + 1} OD {totalItems}</p>
             </div>
           </div>
           <Button 
@@ -157,10 +157,46 @@ export const SalesMatchingDialog = ({
           </Button>
         </div>
 
+        {/* Mobile: Current item card at top */}
+        <div className="md:hidden bg-slate-50 dark:bg-slate-900/50 p-4 border-b">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-lg border">
+            <p className="text-xs font-semibold text-primary tracking-wide mb-1">
+              NEPOZNAT ARTIKL IZ CSV-A
+            </p>
+            <h3 className="text-xl font-bold text-foreground mb-3">
+              {currentItem.parsedName}
+            </h3>
+            
+            <div className="flex gap-2 mb-3">
+              <div className="bg-slate-800 dark:bg-slate-700 text-white px-3 py-1.5 rounded-lg flex-1 text-center">
+                <p className="text-xs opacity-70">CIJENA</p>
+                <p className="text-base font-bold">
+                  {currentItem.parsedPrice !== null 
+                    ? formatPrice(currentItem.parsedPrice) 
+                    : 'N/A'}
+                </p>
+              </div>
+              <div className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg flex-1 text-center">
+                <p className="text-xs opacity-70">KOLIČINA</p>
+                <p className="text-base font-bold">{currentItem.quantity} kom</p>
+              </div>
+            </div>
+
+            <Button 
+              variant="outline" 
+              onClick={handleSkip}
+              className="w-full"
+              size="sm"
+            >
+              PRESKOČI OVU STAVKU
+            </Button>
+          </div>
+        </div>
+
         {/* Main content */}
         <div className="flex flex-1 min-h-0">
-          {/* Left side - Current item */}
-          <div className="w-2/5 p-6 bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center border-r">
+          {/* Left side - Current item (desktop only) */}
+          <div className="hidden md:flex w-2/5 p-6 bg-slate-50 dark:bg-slate-900/50 flex-col items-center justify-center border-r">
             <div className="text-center space-y-4">
               <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border">
                 <p className="text-xs font-semibold text-primary tracking-wide mb-2">
