@@ -135,7 +135,7 @@ export const SalesMatchingDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 md:p-6 pb-4 border-b bg-gradient-to-r from-slate-900 to-slate-800">
           <div className="flex items-center gap-3">
@@ -158,7 +158,7 @@ export const SalesMatchingDialog = ({
         </div>
 
         {/* Mobile: Current item card at top */}
-        <div className="md:hidden bg-slate-50 dark:bg-slate-900/50 p-4 border-b">
+        <div className="lg:hidden bg-slate-50 dark:bg-slate-900/50 p-4 border-b shrink-0">
           <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-lg border">
             <p className="text-xs font-semibold text-primary tracking-wide mb-1">
               NEPOZNAT ARTIKL IZ CSV-A
@@ -196,7 +196,7 @@ export const SalesMatchingDialog = ({
         {/* Main content */}
         <div className="flex flex-1 min-h-0">
           {/* Left side - Current item (desktop only) */}
-          <div className="hidden md:flex w-2/5 p-6 bg-slate-50 dark:bg-slate-900/50 flex-col items-center justify-center border-r">
+          <div className="hidden lg:flex w-2/5 p-6 bg-slate-50 dark:bg-slate-900/50 flex-col items-center justify-center border-r">
             <div className="text-center space-y-4">
               <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border">
                 <p className="text-xs font-semibold text-primary tracking-wide mb-2">
