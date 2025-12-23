@@ -9,6 +9,7 @@ import { IncomingCalculationDialog } from '@/components/IncomingCalculationDialo
 import { CategoryManagementDialog } from '@/components/CategoryManagementDialog';
 import { ExchangeDialog, ExchangeData } from '@/components/ExchangeDialog';
 import { UnfoundItemsDialog, parseUnfoundItems } from '@/components/UnfoundItemsDialog';
+import { SalesMatchingDialog, parseUnmatchedItems } from '@/components/SalesMatchingDialog';
 import { useInventory } from '@/hooks/useInventory';
 import { useCategories } from '@/hooks/useCategories';
 import { ClothingItem } from '@/types/inventory';
@@ -106,6 +107,8 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
   const [exchangeDialogOpen, setExchangeDialogOpen] = useState(false);
   const [unfoundItemsDialogOpen, setUnfoundItemsDialogOpen] = useState(false);
   const [unfoundItems, setUnfoundItems] = useState<string[]>([]);
+  const [salesMatchingDialogOpen, setSalesMatchingDialogOpen] = useState(false);
+  const [unmatchedSalesItems, setUnmatchedSalesItems] = useState<string[]>([]);
   
   const { categories, addCategory, renameCategory, deleteCategory, getCategoryLabel } = useCategories(warehouseId);
 
@@ -239,12 +242,12 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
         if (result.success) {
           let description = result.message;
           
-          // If there are unfound items, open the dialog for manual entry
+          // If there are unfound items, open the matching dialog first
           if (result.notFound && result.notFound.length > 0) {
-            setUnfoundItems(result.notFound);
-            setUnfoundItemsDialogOpen(true);
+            setUnmatchedSalesItems(result.notFound);
+            setSalesMatchingDialogOpen(true);
             
-            description += `\n\n${result.notFound.length} artikala nije pronađeno - otvaram dijalog za ručni unos.`;
+            description += `\n\n${result.notFound.length} artikala nije pronađeno - otvaram dijalog za uparivanje.`;
           }
           
           toast({
@@ -312,6 +315,35 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
       toast({
         title: 'Artikli dodani',
         description: `Dodano ${addedCount} novih artikala u inventuru.`,
+      });
+    }
+  };
+
+  const handleMatchSaleItem = (inventoryItemId: string, quantity: number) => {
+    recordSale(inventoryItemId, quantity);
+  };
+
+  const handleSkipSaleItem = () => {
+    // Item will be collected in skippedItems
+  };
+
+  const handleSalesMatchingComplete = (skippedItems: Array<{ originalName: string; parsedName: string; parsedPrice: number | null; quantity: number }>) => {
+    if (skippedItems.length > 0) {
+      // Convert skipped items to unfound items format and open manual entry dialog
+      const unfoundFormatted = skippedItems.map(item => 
+        `${item.parsedName} ${item.parsedPrice || ''} (količina: ${item.quantity}, cijena: ${item.parsedPrice?.toFixed(2) || '0.00'}€)`
+      );
+      setUnfoundItems(unfoundFormatted);
+      setUnfoundItemsDialogOpen(true);
+      
+      toast({
+        title: 'Uparivanje završeno',
+        description: `${skippedItems.length} artikala nije upareno - možete ih ručno dodati.`,
+      });
+    } else {
+      toast({
+        title: 'Uparivanje završeno',
+        description: 'Svi artikli su uspješno upareni!',
       });
     }
   };
@@ -966,6 +998,16 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
         onOpenChange={setUnfoundItemsDialogOpen}
         unfoundItems={parseUnfoundItems(unfoundItems)}
         onAddItems={handleAddUnfoundItems}
+      />
+
+      <SalesMatchingDialog
+        open={salesMatchingDialogOpen}
+        onOpenChange={setSalesMatchingDialogOpen}
+        unmatchedItems={parseUnmatchedItems(unmatchedSalesItems)}
+        inventoryItems={items}
+        onMatchItem={handleMatchSaleItem}
+        onSkipItem={handleSkipSaleItem}
+        onComplete={handleSalesMatchingComplete}
       />
     </div>
   );
