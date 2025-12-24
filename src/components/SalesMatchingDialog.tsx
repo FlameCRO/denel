@@ -41,15 +41,15 @@ export const SalesMatchingDialog = ({
   const [skippedItems, setSkippedItems] = useState<UnmatchedSaleItem[]>([]);
   const [matchedCount, setMatchedCount] = useState(0);
 
-  // Reset state when dialog opens with new items
+  // Reset state only when dialog opens (not on every unmatchedItems change)
   useEffect(() => {
-    if (open && unmatchedItems.length > 0) {
+    if (open) {
       setCurrentIndex(0);
       setSearchQuery('');
       setSkippedItems([]);
       setMatchedCount(0);
     }
-  }, [open, unmatchedItems]);
+  }, [open]);
 
   const currentItem = unmatchedItems[currentIndex];
   const totalItems = unmatchedItems.length;
