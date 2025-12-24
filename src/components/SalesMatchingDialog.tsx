@@ -9,12 +9,21 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { ClothingItem } from '@/types/inventory';
 import { Search, ShoppingCart, Check, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface UnmatchedSaleItem {
   originalName: string;
   parsedName: string;
   parsedPrice: number | null;
   quantity: number;
+}
+
+interface SalesMatchingMapping {
+  csv_name: string;
+  csv_price: number;
+  inventory_item_id: string;
+  inventory_item_name: string;
 }
 
 interface SalesMatchingDialogProps {
@@ -40,10 +49,76 @@ export const SalesMatchingDialog = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [skippedItems, setSkippedItems] = useState<UnmatchedSaleItem[]>([]);
   const [matchedCount, setMatchedCount] = useState(0);
+  const [savedMappings, setSavedMappings] = useState<SalesMatchingMapping[]>([]);
 
-  // Reset state only when dialog opens (not on every unmatchedItems change)
+  // Load saved mappings on mount
   useEffect(() => {
-    if (open) {
+    const loadMappings = async () => {
+      const { data, error } = await supabase
+        .from('sales_matching_mappings')
+        .select('*');
+      
+      if (error) {
+        console.error('Error loading mappings:', error);
+        return;
+      }
+      
+      setSavedMappings(data || []);
+    };
+    
+    loadMappings();
+  }, []);
+
+  // Reset state and auto-match when dialog opens
+  useEffect(() => {
+    if (open && unmatchedItems.length > 0 && savedMappings.length > 0) {
+      // Auto-match items that have saved mappings
+      let autoMatchedCount = 0;
+      const stillUnmatched: number[] = [];
+      
+      unmatchedItems.forEach((item, index) => {
+        if (item.parsedPrice === null) {
+          stillUnmatched.push(index);
+          return;
+        }
+        
+        // Find a saved mapping with matching name and price
+        const mapping = savedMappings.find(m => 
+          m.csv_name.toLowerCase() === item.parsedName.toLowerCase() &&
+          Math.abs(m.csv_price - item.parsedPrice!) < 0.01
+        );
+        
+        if (mapping) {
+          // Verify the inventory item still exists
+          const inventoryItem = inventoryItems.find(inv => inv.id === mapping.inventory_item_id);
+          if (inventoryItem) {
+            onMatchItem(mapping.inventory_item_id, item.quantity);
+            autoMatchedCount++;
+          } else {
+            stillUnmatched.push(index);
+          }
+        } else {
+          stillUnmatched.push(index);
+        }
+      });
+      
+      if (autoMatchedCount > 0) {
+        toast.success(`Automatski upareno ${autoMatchedCount} stavki iz zapamćenih uparivanja`);
+      }
+      
+      // Find first unmatched item index
+      const firstUnmatchedIndex = stillUnmatched.length > 0 ? stillUnmatched[0] : unmatchedItems.length;
+      setCurrentIndex(firstUnmatchedIndex);
+      setSearchQuery('');
+      setSkippedItems([]);
+      setMatchedCount(autoMatchedCount);
+      
+      // If all were auto-matched, complete
+      if (stillUnmatched.length === 0) {
+        onComplete([]);
+        onOpenChange(false);
+      }
+    } else if (open) {
       setCurrentIndex(0);
       setSearchQuery('');
       setSkippedItems([]);
@@ -84,11 +159,41 @@ export const SalesMatchingDialog = ({
     return filtered;
   }, [inventoryItems, currentItem, searchQuery]);
 
-  const handleSelectMatch = (inventoryItem: ClothingItem) => {
+  const handleSelectMatch = async (inventoryItem: ClothingItem) => {
     if (!currentItem) return;
 
     onMatchItem(inventoryItem.id, currentItem.quantity);
     setMatchedCount(prev => prev + 1);
+    
+    // Save the mapping if we have a price
+    if (currentItem.parsedPrice !== null) {
+      const mappingData = {
+        csv_name: currentItem.parsedName,
+        csv_price: currentItem.parsedPrice,
+        inventory_item_id: inventoryItem.id,
+        inventory_item_name: inventoryItem.name,
+      };
+      
+      // Check if mapping already exists
+      const existingMapping = savedMappings.find(m => 
+        m.csv_name.toLowerCase() === currentItem.parsedName.toLowerCase() &&
+        Math.abs(m.csv_price - currentItem.parsedPrice!) < 0.01
+      );
+      
+      if (!existingMapping) {
+        const { error } = await supabase
+          .from('sales_matching_mappings')
+          .upsert(mappingData, { onConflict: 'csv_name,csv_price' });
+        
+        if (error) {
+          console.error('Error saving mapping:', error);
+        } else {
+          // Update local state
+          setSavedMappings(prev => [...prev, mappingData]);
+          toast.success(`Zapamćeno: "${currentItem.parsedName}" → "${inventoryItem.name}"`);
+        }
+      }
+    }
     
     if (currentIndex < totalItems - 1) {
       setCurrentIndex(prev => prev + 1);
