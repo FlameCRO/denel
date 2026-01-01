@@ -493,7 +493,6 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
         items,
         warehouseId,
         getTotalValue,
-        getTotalSalesValue,
       });
       toast({
         title: 'PDF izvezen',
