@@ -615,12 +615,12 @@ export const WarehousePage = ({ warehouseId, warehouseName }: WarehousePageProps
                     className="gap-2"
                   >
                     <Download className="h-4 w-4" />
-                    CSV
+                    Izvezi inventuru
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
-                  <p className="font-semibold mb-1">Izvoz u CSV format</p>
-                  <p className="text-xs">Stupci: Naziv, Kategorija, Cijena, Na stanju, Prodano, U dolasku</p>
+                  <p className="font-semibold mb-1">Izvoz inventure u CSV</p>
+                  <p className="text-xs">Stupci: Artikli, Cijena, Ostalo komada</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
