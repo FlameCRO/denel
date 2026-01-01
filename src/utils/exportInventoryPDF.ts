@@ -142,32 +142,40 @@ export const exportInventoryToPDF = async ({
 
   // Get final Y position after table
   const finalY = (doc as any).lastAutoTable.finalY || 150;
+  const pageHeight = doc.internal.pageSize.height;
+  
+  // Check if there's enough space for summary (need ~80px), if not add new page
+  let summaryY = finalY;
+  if (finalY + 80 > pageHeight) {
+    doc.addPage();
+    summaryY = 20;
+  }
 
   // Summary section
   doc.setDrawColor(41, 128, 185);
   doc.setLineWidth(0.5);
-  doc.line(14, finalY + 10, 196, finalY + 10);
+  doc.line(14, summaryY + 10, 196, summaryY + 10);
 
   doc.setFontSize(12);
   doc.setFont('Roboto', 'normal');
-  doc.text('SAŽETAK:', 14, finalY + 22);
+  doc.text('SAŽETAK:', 14, summaryY + 22);
 
   doc.setFontSize(11);
-  doc.text(`Ukupno artikala na stanju:`, 14, finalY + 34);
-  doc.text(`${totalStock} kom`, 100, finalY + 34);
+  doc.text(`Ukupno artikala na stanju:`, 14, summaryY + 34);
+  doc.text(`${totalStock} kom`, 100, summaryY + 34);
 
-  doc.text(`Ukupna vrijednost inventure:`, 14, finalY + 44);
-  doc.text(formatPrice(inventoryValue), 100, finalY + 44);
+  doc.text(`Ukupna vrijednost inventure:`, 14, summaryY + 44);
+  doc.text(formatPrice(inventoryValue), 100, summaryY + 44);
 
   // Footer line
-  doc.line(14, finalY + 52, 196, finalY + 52);
+  doc.line(14, summaryY + 52, 196, summaryY + 52);
 
   // Footer with signature area
   doc.setFontSize(9);
-  doc.text('Potpis:', 14, finalY + 64);
-  doc.line(30, finalY + 64, 80, finalY + 64);
+  doc.text('Potpis:', 14, summaryY + 64);
+  doc.line(30, summaryY + 64, 80, summaryY + 64);
 
-  doc.text(`${ownerName}`, 55, finalY + 72, { align: 'center' });
+  doc.text(`${ownerName}`, 55, summaryY + 72, { align: 'center' });
 
   // Save the PDF
   const fileName = `inventura_${warehouseId}_${new Date().toISOString().split('T')[0]}.pdf`;
