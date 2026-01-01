@@ -373,15 +373,11 @@ export const useInventory = (warehouseId: string = 'warehouse1') => {
   };
 
   const exportToCSV = () => {
-    const headers = ['Naziv', 'Kategorija', 'Cijena (€)', 'Na stanju', 'Prodano', 'U dolasku', 'Vrijednost'];
+    const headers = ['Artikli', 'Cijena', 'Ostalo komada'];
     const rows = items.map(item => [
       item.name,
-      item.category,
       item.price.toFixed(2),
       item.quantityOwned.toString(),
-      item.quantitySold.toString(),
-      item.quantityIncoming.toString(),
-      (item.price * item.quantityOwned).toFixed(2),
     ]);
 
     const csvContent = [
