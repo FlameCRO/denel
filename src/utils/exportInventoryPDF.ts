@@ -6,7 +6,6 @@ interface ExportPDFOptions {
   items: ClothingItem[];
   warehouseId: string;
   getTotalValue: () => number;
-  getTotalSalesValue: () => number;
 }
 
 const getWarehouseOwner = (warehouseId: string): string => {
@@ -67,7 +66,6 @@ export const exportInventoryToPDF = async ({
   items,
   warehouseId,
   getTotalValue,
-  getTotalSalesValue,
 }: ExportPDFOptions) => {
   const doc = new jsPDF();
   
@@ -100,28 +98,23 @@ export const exportInventoryToPDF = async ({
 
   // Calculate totals
   const totalStock = items.reduce((sum, item) => sum + item.quantityOwned, 0);
-  const totalSold = items.reduce((sum, item) => sum + item.quantitySold, 0);
   const inventoryValue = getTotalValue();
-  const salesValue = getTotalSalesValue();
 
   // Sort items alphabetically (A-Ž) for PDF export
   const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name, 'hr'));
 
-  // Prepare table data
+  // Prepare table data - only Artikl, Cijena, Na stanju
   const tableData = sortedItems.map((item, index) => [
     (index + 1).toString(),
     item.name,
     formatPrice(item.price),
     item.quantityOwned.toString(),
-    item.quantitySold.toString(),
-    formatPrice(item.price * item.quantityOwned),
-    formatPrice(item.price * item.quantitySold),
   ]);
 
   // Create table
   autoTable(doc, {
     startY: 58,
-    head: [['#', 'Artikl', 'Cijena', 'Na stanju', 'Prodano', 'Vrijednost stanja', 'Vrijednost prodaje']],
+    head: [['#', 'Artikl', 'Cijena', 'Na stanju']],
     body: tableData,
     theme: 'striped',
     headStyles: {
@@ -133,12 +126,9 @@ export const exportInventoryToPDF = async ({
     },
     columnStyles: {
       0: { halign: 'center', cellWidth: 15 },
-      1: { halign: 'left', cellWidth: 45 },
-      2: { halign: 'right', cellWidth: 22 },
-      3: { halign: 'center', cellWidth: 20 },
-      4: { halign: 'center', cellWidth: 20 },
-      5: { halign: 'right', cellWidth: 30 },
-      6: { halign: 'right', cellWidth: 30 },
+      1: { halign: 'left', cellWidth: 80 },
+      2: { halign: 'right', cellWidth: 40 },
+      3: { halign: 'center', cellWidth: 40 },
     },
     styles: {
       fontSize: 9,
@@ -158,31 +148,26 @@ export const exportInventoryToPDF = async ({
   doc.setLineWidth(0.5);
   doc.line(14, finalY + 10, 196, finalY + 10);
 
+  doc.setFontSize(12);
+  doc.setFont('Roboto', 'normal');
+  doc.text('SAŽETAK:', 14, finalY + 22);
+
   doc.setFontSize(11);
-  doc.text('SAŽETAK:', 14, finalY + 20);
+  doc.text(`Ukupno artikala na stanju:`, 14, finalY + 34);
+  doc.text(`${totalStock} kom`, 100, finalY + 34);
 
-  doc.setFontSize(10);
-
-  // Left column - quantities
-  doc.text(`Ukupno artikala na stanju: ${totalStock} kom`, 14, finalY + 30);
-  doc.text(`Ukupno prodanih artikala: ${totalSold} kom`, 14, finalY + 38);
-
-  // Right column - values
-  doc.text('VRIJEDNOST INVENTURE (na stanju):', 110, finalY + 30);
-  doc.text(formatPrice(inventoryValue), 196, finalY + 30, { align: 'right' });
-
-  doc.text('UKUPAN PROMET (prodano):', 110, finalY + 38);
-  doc.text(formatPrice(salesValue), 196, finalY + 38, { align: 'right' });
+  doc.text(`Ukupna vrijednost inventure:`, 14, finalY + 44);
+  doc.text(formatPrice(inventoryValue), 100, finalY + 44);
 
   // Footer line
-  doc.line(14, finalY + 45, 196, finalY + 45);
+  doc.line(14, finalY + 52, 196, finalY + 52);
 
   // Footer with signature area
   doc.setFontSize(9);
-  doc.text('Potpis:', 14, finalY + 55);
-  doc.line(30, finalY + 55, 80, finalY + 55);
+  doc.text('Potpis:', 14, finalY + 64);
+  doc.line(30, finalY + 64, 80, finalY + 64);
 
-  doc.text(`${ownerName}`, 55, finalY + 62, { align: 'center' });
+  doc.text(`${ownerName}`, 55, finalY + 72, { align: 'center' });
 
   // Save the PDF
   const fileName = `inventura_${warehouseId}_${new Date().toISOString().split('T')[0]}.pdf`;
