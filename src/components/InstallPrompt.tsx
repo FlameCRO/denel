@@ -8,11 +8,28 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+// Store the deferred prompt globally so it persists across re-renders
+let globalDeferredPrompt: BeforeInstallPromptEvent | null = null;
+
+// Set up listener immediately when module loads
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e: Event) => {
+    e.preventDefault();
+    globalDeferredPrompt = e as BeforeInstallPromptEvent;
+    console.log('PWA: beforeinstallprompt event captured');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    globalDeferredPrompt = null;
+    console.log('PWA: App was installed');
+  });
+}
+
 export const InstallPrompt = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [canInstall, setCanInstall] = useState(globalDeferredPrompt !== null);
   const [dismissed, setDismissed] = useState(false);
-  const [isIOS] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent));
-  const [isStandalone] = useState(() => window.matchMedia('(display-mode: standalone)').matches);
+  const [isIOS] = useState(() => typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent));
+  const [isStandalone] = useState(() => typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches);
 
   useEffect(() => {
     // Check if dismissed recently
@@ -25,24 +42,52 @@ export const InstallPrompt = () => {
       }
     }
 
+    // Also listen for the event in case it fires after component mounts
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      globalDeferredPrompt = e as BeforeInstallPromptEvent;
+      setCanInstall(true);
+      console.log('PWA: beforeinstallprompt event captured in component');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
-  }, []);
+    
+    // Check periodically if the prompt became available
+    const interval = setInterval(() => {
+      if (globalDeferredPrompt && !canInstall) {
+        setCanInstall(true);
+      }
+    }, 1000);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      clearInterval(interval);
+    };
+  }, [canInstall]);
 
   const handleInstall = async () => {
-    if (deferredPrompt) {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setDismissed(true);
+    console.log('PWA: Install button clicked, globalDeferredPrompt:', !!globalDeferredPrompt);
+    
+    if (globalDeferredPrompt) {
+      try {
+        await globalDeferredPrompt.prompt();
+        const { outcome } = await globalDeferredPrompt.userChoice;
+        console.log('PWA: User choice:', outcome);
+        
+        if (outcome === 'accepted') {
+          setDismissed(true);
+        }
+        globalDeferredPrompt = null;
+        setCanInstall(false);
+      } catch (error) {
+        console.error('PWA: Install error:', error);
       }
-      setDeferredPrompt(null);
+    } else if (isIOS) {
+      // For iOS, just dismiss since they need to use Safari's share menu
+      setDismissed(true);
     } else {
+      console.log('PWA: No deferred prompt available');
+      // Still allow dismissing
       setDismissed(true);
     }
   };
