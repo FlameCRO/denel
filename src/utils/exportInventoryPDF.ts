@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ClothingItem } from '@/types/inventory';
+import { getWarehouseManagers } from '@/components/WarehouseManagerDialog';
 
 interface ExportPDFOptions {
   items: ClothingItem[];
@@ -9,11 +10,12 @@ interface ExportPDFOptions {
 }
 
 const getWarehouseOwner = (warehouseId: string): string => {
+  const managers = getWarehouseManagers();
   switch (warehouseId) {
     case 'warehouse1':
-      return 'Elvis Perika';
+      return managers.warehouse1;
     case 'warehouse2':
-      return 'Ivana Majdak';
+      return managers.warehouse2;
     default:
       return 'Nepoznato skladište';
   }
